@@ -1,0 +1,6 @@
+{
+  "name": "Enterprise Workplace HRMS",
+  "description": "An enterprise modern human resource management platform featuring employee directory, onboarding pipelines, leave approvals, payroll, performance reviews, and AI assistance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

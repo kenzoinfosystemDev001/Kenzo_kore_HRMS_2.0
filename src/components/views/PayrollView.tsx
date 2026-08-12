@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   DollarSign, 
   CreditCard, 
@@ -11,29 +11,57 @@ import {
   X,
   FileText,
   HelpCircle,
-  Check
+  Check,
+  Plus,
+  Bell,
+  AlertTriangle,
+  Gift,
+  Sparkles,
+  Calendar,
+  UserCheck,
+  Building
 } from 'lucide-react';
-import { PayrollRecord, UserAccount } from '../../types';
+import { PayrollRecord, UserAccount, Employee } from '../../types';
 
 interface PayrollViewProps {
   payroll: PayrollRecord[];
+  employees?: Employee[];
   currentUser: UserAccount | null;
   onUpdatePayrollStatus: (id: string, status: 'Paid' | 'Processing' | 'Hold') => void;
   onRunPayrollBatch: () => void;
+  onCreatePayroll?: (data: any) => void;
 }
 
 export const PayrollView: React.FC<PayrollViewProps> = ({
   payroll,
+  employees = [],
   currentUser,
   onUpdatePayrollStatus,
   onRunPayrollBatch,
+  onCreatePayroll,
 }) => {
   const isAdmin = currentUser?.role === 'Admin';
+  
+  // Modals state
   const [selectedSlip, setSelectedSlip] = useState<PayrollRecord | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEmployeeDisbursementPopupOpen, setIsEmployeeDisbursementPopupOpen] = useState(false);
   const [requestSubmitted, setRequestSubmitted] = useState(false);
 
-  // Filter payroll records based on role:
-  // If Employee, show ONLY the logged-in employee's payroll record!
+  // Notifier Manager State (Admin)
+  const [nextPayDate, setNextPayDate] = useState('2026-08-30');
+  const [payDuration, setPayDuration] = useState<'Bi-Weekly' | 'Monthly'>('Bi-Weekly');
+  const [daysRemaining, setDaysRemaining] = useState(3);
+
+  // Admin Create Payroll Form State
+  const [selectedEmpId, setSelectedEmpId] = useState('');
+  const [baseSalary, setBaseSalary] = useState(5500);
+  const [allowanceBonus, setAllowanceBonus] = useState(500);
+  const [healthDeduction, setHealthDeduction] = useState(150);
+  const [taxDeduction, setTaxDeduction] = useState(1100);
+  const [payPeriod, setPayPeriod] = useState('Aug 16 - Aug 30, 2026');
+
+  // Filter payroll records based on role
   const displayPayroll = isAdmin
     ? payroll
     : payroll.filter(
@@ -43,7 +71,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
           p.employeeName.toLowerCase().includes(currentUser?.name.split(' ')[0].toLowerCase() || '')
       );
 
-  // Fallback for employee if not found in mock array
+  // Fallback for employee if not found
   const mySingleRecord: PayrollRecord = displayPayroll[0] || {
     id: `PAY-${currentUser?.id || '1001'}`,
     employeeId: currentUser?.id || 'EMP-1001',
@@ -55,9 +83,19 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
     healthDeduction: 237,
     taxDeduction: 1000,
     netPay: 4062.50,
-    paymentStatus: 'Paid',
+    paymentStatus: 'Processing',
     payPeriod: 'Aug 01 - Aug 15, 2026',
   };
+
+  // Trigger Automatic Real-Time Pop-Up for Employee if a payroll is ready/processing
+  useEffect(() => {
+    if (!isAdmin && mySingleRecord && (mySingleRecord.paymentStatus === 'Processing' || mySingleRecord.paymentStatus === 'Paid')) {
+      const acknowledged = sessionStorage.getItem(`acknowledged_${mySingleRecord.id}`);
+      if (!acknowledged) {
+        setIsEmployeeDisbursementPopupOpen(true);
+      }
+    }
+  }, [isAdmin, mySingleRecord.id]);
 
   const recordsToRender = isAdmin ? displayPayroll : [mySingleRecord];
 
@@ -66,8 +104,120 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
   const totalBonuses = recordsToRender.reduce((acc, c) => acc + c.bonus, 0);
   const processingCount = recordsToRender.filter((p) => p.paymentStatus === 'Processing').length;
 
+  const handleAdminCreatePayrollSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const empMatch = employees.find(e => e.id === selectedEmpId) || {
+      id: selectedEmpId || 'EMP-1001',
+      name: 'Sujal kumar',
+      role: 'Software Engineer',
+      department: 'Engineering'
+    };
+
+    if (onCreatePayroll) {
+      onCreatePayroll({
+        employeeId: empMatch.id,
+        employeeName: empMatch.name,
+        role: empMatch.role,
+        department: empMatch.department,
+        baseSalary,
+        bonus: allowanceBonus,
+        healthDeduction,
+        taxDeduction,
+        payPeriod
+      });
+    }
+
+    setIsCreateModalOpen(false);
+    alert(`Payroll disbursed successfully for ${empMatch.name}! Real-time pop-up notification routed to employee portal.`);
+  };
+
+  const handleEmployeeAcknowledge = () => {
+    sessionStorage.setItem(`acknowledged_${mySingleRecord.id}`, 'true');
+    onUpdatePayrollStatus(mySingleRecord.id, 'Paid');
+    setIsEmployeeDisbursementPopupOpen(false);
+    alert('Thank you! Salary disbursement receipt acknowledged.');
+  };
+
   return (
     <div className="space-y-6">
+      {/* ---------------------------------------------------- */}
+      {/* ADMIN SALARY DISBURSEMENT NOTIFIER & BUZZING ALERT BANNER */}
+      {/* ---------------------------------------------------- */}
+      {isAdmin && daysRemaining <= 5 && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl p-4 text-white shadow-lg flex items-center justify-between gap-4 animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+              <Bell className="w-5 h-5 text-white animate-bounce" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm uppercase tracking-wider">
+                🔔 SALARY DISBURSEMENT NOTIFIER: Bi-Weekly Payroll Cycle Due in {daysRemaining} Days!
+              </h4>
+              <p className="text-xs text-amber-100 mt-0.5">
+                Target Pay Date: <strong>{nextPayDate}</strong> ({payDuration}) • {processingCount} employee disbursements ready for disburse.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="px-4 py-2 bg-white text-slate-900 font-extrabold text-xs rounded-xl shadow-md hover:bg-slate-100 transition-all shrink-0 flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4 text-[#0060ac]" />
+            <span>Process Payroll Now</span>
+          </button>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* ADMIN PAYROLL MANAGER & CYCLE SCHEDULE CARD */}
+      {/* ---------------------------------------------------- */}
+      {isAdmin && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0060ac] flex items-center justify-center font-bold">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-[#1a2b3c]">Automated Payroll Schedule & Duration Manager</h3>
+              <p className="text-xs text-slate-500">Configure upcoming payroll cycles and automatic salary reminder alerts</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-bold text-slate-600">Cycle Duration:</span>
+              <select
+                value={payDuration}
+                onChange={(e) => setPayDuration(e.target.value as any)}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
+              >
+                <option value="Bi-Weekly">Bi-Weekly (15 Days)</option>
+                <option value="Monthly">Monthly (30 Days)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-bold text-slate-600">Next Pay Date:</span>
+              <input
+                type="date"
+                value={nextPayDate}
+                onChange={(e) => setNextPayDate(e.target.value)}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
+              />
+            </div>
+
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-4 py-2 bg-[#0060ac] text-white font-bold text-xs rounded-xl hover:bg-[#004e8c] shadow-xs flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create & Disburse Payroll</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs">
@@ -163,7 +313,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
               <tr className="bg-slate-50 border-b border-[#e2e8f0] text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                 <th className="py-3 px-4">Employee</th>
                 <th className="py-3 px-4">Base Salary</th>
-                <th className="py-3 px-4">Bonus</th>
+                <th className="py-3 px-4">Bonus / Allowances</th>
                 <th className="py-3 px-4">Health / Tax Deductions</th>
                 <th className="py-3 px-4">Net Payout</th>
                 <th className="py-3 px-4">Status</th>
@@ -235,6 +385,188 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
         </div>
       </div>
 
+      {/* ---------------------------------------------------- */}
+      {/* MODAL 1: ADMIN CREATE & DISBURSE PAYROLL MODAL */}
+      {/* ---------------------------------------------------- */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-[#0060ac]" />
+                <h3 className="text-base font-bold text-[#1a2b3c]">Create & Disburse Employee Payroll</h3>
+              </div>
+              <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAdminCreatePayrollSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Select Target Employee</label>
+                <select
+                  required
+                  value={selectedEmpId}
+                  onChange={(e) => setSelectedEmpId(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
+                >
+                  <option value="">-- Choose Employee --</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name} ({emp.id}) • {emp.role} ({emp.department})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Base Salary ($)</label>
+                  <input
+                    type="number"
+                    required
+                    value={baseSalary}
+                    onChange={(e) => setBaseSalary(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Allowances & Bonuses ($)</label>
+                  <input
+                    type="number"
+                    value={allowanceBonus}
+                    onChange={(e) => setAllowanceBonus(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-700"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Health Insurance ($)</label>
+                  <input
+                    type="number"
+                    value={healthDeduction}
+                    onChange={(e) => setHealthDeduction(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Tax Deductions ($)</label>
+                  <input
+                    type="number"
+                    value={taxDeduction}
+                    onChange={(e) => setTaxDeduction(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-red-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Pay Period</label>
+                <input
+                  type="text"
+                  required
+                  value={payPeriod}
+                  onChange={(e) => setPayPeriod(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800"
+                />
+              </div>
+
+              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex justify-between items-center text-xs font-bold">
+                <span className="text-[#1a2b3c]">Calculated Net Disbursement:</span>
+                <span className="text-emerald-700 text-sm">
+                  ${Math.max(0, baseSalary + allowanceBonus - (healthDeduction + taxDeduction)).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#0060ac] text-white font-bold rounded-xl hover:bg-[#004e8c] shadow-md flex items-center gap-1.5"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Approve & Disburse Payroll</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* MODAL 2: AUTOMATIC EMPLOYEE DISBURSEMENT POP-UP MODAL */}
+      {/* ---------------------------------------------------- */}
+      {!isAdmin && isEmployeeDisbursementPopupOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
+                <Gift className="w-7 h-7 text-emerald-600 animate-bounce" />
+              </div>
+              <span className="px-3 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 text-teal-800 uppercase tracking-widest">
+                Payroll Alert
+              </span>
+              <h3 className="text-xl font-extrabold text-[#1a2b3c]">
+                🎁 Salary Disbursement Received!
+              </h3>
+              <p className="text-xs text-slate-500">
+                Your salary for <strong className="text-slate-800">{mySingleRecord.payPeriod}</strong> has been processed by HR Administration.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs">
+              <div className="flex justify-between border-b border-slate-200 pb-2 font-bold">
+                <span className="text-slate-500">Employee Name:</span>
+                <span className="text-[#1a2b3c]">{mySingleRecord.employeeName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Base Salary:</span>
+                <span className="font-semibold text-slate-800">${mySingleRecord.baseSalary.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Allowances & Bonus:</span>
+                <span className="font-semibold text-emerald-600">+${mySingleRecord.bonus.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Tax & Medical Deductions:</span>
+                <span className="font-semibold text-red-600">-${(mySingleRecord.healthDeduction + mySingleRecord.taxDeduction).toLocaleString()}</span>
+              </div>
+
+              <div className="border-t border-slate-200 pt-2 flex justify-between items-center text-sm font-extrabold text-[#1a2b3c]">
+                <span>Net Salary Received:</span>
+                <span className="text-emerald-700 text-base">${mySingleRecord.netPay.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={handleEmployeeAcknowledge}
+                className="w-full py-3 bg-[#0060ac] hover:bg-[#004e8c] text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4 text-teal-300" />
+                <span>Acknowledge Salary Receipt</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedSlip(mySingleRecord)}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
+              >
+                <Download className="w-4 h-4 text-[#0060ac]" />
+                <span>Download Payslip PDF</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Payslip Inspection Modal */}
       {selectedSlip && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -268,7 +600,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
                 <span className="font-semibold">${selectedSlip.baseSalary.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span>Performance Bonus</span>
+                <span>Performance Bonus & Allowances</span>
                 <span className="font-semibold text-emerald-600">+${selectedSlip.bonus.toLocaleString()}</span>
               </div>
 

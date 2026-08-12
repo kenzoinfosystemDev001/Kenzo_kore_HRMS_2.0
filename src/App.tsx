@@ -339,6 +339,21 @@ export default function App() {
     }
   };
 
+  const handleCreatePayroll = async (payrollData: any) => {
+    try {
+      const res = await fetch('/api/payroll/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payrollData),
+      });
+      if (res.ok) {
+        await fetchAllData();
+      }
+    } catch (error) {
+      console.error('Error creating payroll:', error);
+    }
+  };
+
   // Handlers - Goals
   const handleAddGoal = async (newGoal: PerformanceGoal) => {
     try {
@@ -484,9 +499,11 @@ export default function App() {
           {currentView === 'payroll' && (
             <PayrollView
               payroll={payroll}
+              employees={employees}
               currentUser={currentUser}
               onUpdatePayrollStatus={handleUpdatePayrollStatus}
               onRunPayrollBatch={handleRunPayrollBatch}
+              onCreatePayroll={handleCreatePayroll}
             />
           )}
 

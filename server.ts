@@ -358,8 +358,47 @@ app.put('/api/leaves/:id', async (req, res) => {
 });
 
 // ----------------------------------------------------
-// PAYROLL ENDPOINTS
+// PAYROLL ENDPOINTS (PostgreSQL Persisted)
 // ----------------------------------------------------
+
+app.post('/api/payroll/create', async (req, res) => {
+  try {
+    const { employeeId, employeeName, role, department, baseSalary, bonus, healthDeduction, taxDeduction, payPeriod } = req.body;
+
+    const bSalary = Number(baseSalary || 0);
+    const bBonus = Number(bonus || 0);
+    const hDeduct = Number(healthDeduction || 0);
+    const tDeduct = Number(taxDeduction || 0);
+    const netPay = Math.max(0, bSalary + bBonus - (hDeduct + tDeduct));
+    const newId = `PAY-${Math.floor(1000 + Math.random() * 9000)}`;
+    const period = payPeriod || 'Aug 01 - Aug 15, 2026';
+
+    await pool.query(
+      `INSERT INTO payroll (
+        id, employee_id, employee_name, role, department, base_salary, bonus, health_deduction, tax_deduction, net_pay, payment_status, pay_period
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [newId, employeeId, employeeName, role || 'Team Member', department || 'Engineering', bSalary, bBonus, hDeduct, tDeduct, netPay, 'Processing', period]
+    );
+
+    res.status(201).json({
+      id: newId,
+      employeeId,
+      employeeName,
+      role: role || 'Team Member',
+      department: department || 'Engineering',
+      baseSalary: bSalary,
+      bonus: bBonus,
+      healthDeduction: hDeduct,
+      taxDeduction: tDeduct,
+      netPay,
+      paymentStatus: 'Processing',
+      payPeriod: period,
+    });
+  } catch (error: any) {
+    console.error('Create payroll error:', error);
+    res.status(500).json({ error: 'Failed to create payroll record' });
+  }
+});
 
 app.get('/api/payroll', async (_req, res) => {
   try {

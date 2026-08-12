@@ -90,7 +90,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               <input
                 type="email"
                 required
-                placeholder="e.g. sujal.kumar@kenzoinfosystems.com"
+                placeholder="Enter the company mail"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0060ac] focus:bg-white transition-all"

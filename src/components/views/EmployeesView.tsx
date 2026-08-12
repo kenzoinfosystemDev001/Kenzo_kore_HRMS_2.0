@@ -521,7 +521,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                   <input
                     type="email"
                     required
-                    placeholder="jordan.m@kenzoinfosystems.com"
+                    placeholder="Enter the company mail"
                     value={newForm.email}
                     onChange={(e) => setNewForm({ ...newForm, email: e.target.value })}
                     className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg focus:outline-none focus:border-[#0060ac]"

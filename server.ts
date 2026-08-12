@@ -510,6 +510,80 @@ app.get('/api/activities', async (_req, res) => {
 });
 
 // ----------------------------------------------------
+// HELPDESK TICKETS ENDPOINTS (PostgreSQL Persisted)
+// ----------------------------------------------------
+
+app.get('/api/helpdesk', async (_req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM helpdesk_tickets ORDER BY created_at DESC');
+    const tickets = result.rows.map((r) => ({
+      id: r.id,
+      employeeId: r.employee_id,
+      employeeName: r.employee_name,
+      subject: r.subject,
+      category: r.category,
+      priority: r.priority,
+      status: r.status,
+      createdAt: r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      lastUpdated: r.last_updated ? new Date(r.last_updated).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      description: r.description,
+    }));
+    res.json(tickets);
+  } catch (error: any) {
+    console.error('Fetch helpdesk tickets error:', error);
+    res.status(500).json({ error: 'Failed to fetch helpdesk tickets' });
+  }
+});
+
+app.post('/api/helpdesk', async (req, res) => {
+  try {
+    const { employeeId, employeeName, subject, category, priority, description } = req.body;
+    const newId = `TCK-${Math.floor(100 + Math.random() * 900)}`;
+    const today = new Date().toISOString().split('T')[0];
+
+    await pool.query(
+      `INSERT INTO helpdesk_tickets (id, employee_id, employee_name, subject, category, priority, status, created_at, last_updated, description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [newId, employeeId, employeeName, subject, category, priority || 'Medium', 'Open', today, today, description]
+    );
+
+    res.status(201).json({
+      id: newId,
+      employeeId,
+      employeeName,
+      subject,
+      category,
+      priority: priority || 'Medium',
+      status: 'Open',
+      createdAt: today,
+      lastUpdated: today,
+      description,
+    });
+  } catch (error: any) {
+    console.error('Create helpdesk ticket error:', error);
+    res.status(500).json({ error: 'Failed to create helpdesk ticket' });
+  }
+});
+
+app.put('/api/helpdesk/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const today = new Date().toISOString().split('T')[0];
+
+    await pool.query(
+      'UPDATE helpdesk_tickets SET status = $1, last_updated = $2 WHERE id = $3',
+      [status, today, id]
+    );
+
+    res.json({ message: 'Helpdesk ticket status updated', id, status, lastUpdated: today });
+  } catch (error: any) {
+    console.error('Update helpdesk ticket error:', error);
+    res.status(500).json({ error: 'Failed to update helpdesk ticket status' });
+  }
+});
+
+// ----------------------------------------------------
 // AI HR ASSISTANT ENDPOINT
 // ----------------------------------------------------
 

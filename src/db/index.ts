@@ -157,6 +157,22 @@ export async function initDb() {
       );
     `);
 
+    // Create helpdesk_tickets table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS helpdesk_tickets (
+        id VARCHAR(50) PRIMARY KEY,
+        employee_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
+        employee_name VARCHAR(100) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        priority VARCHAR(50) DEFAULT 'Medium',
+        status VARCHAR(50) DEFAULT 'Open',
+        created_at DATE DEFAULT CURRENT_DATE,
+        last_updated DATE DEFAULT CURRENT_DATE,
+        description TEXT NOT NULL
+      );
+    `);
+
     // Create activities table
     await client.query(`
       CREATE TABLE IF NOT EXISTS activities (

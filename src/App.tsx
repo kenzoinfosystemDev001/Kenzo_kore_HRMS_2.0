@@ -24,7 +24,6 @@ import {
   EmployeeDocument,
   AttendanceRecord,
   AttendanceCorrection,
-  ExpenseRequest,
   SupportTicket,
   AssetItem,
   Announcement,
@@ -34,7 +33,6 @@ import {
 import { 
   INITIAL_ATTENDANCE_RECORDS, 
   INITIAL_ATTENDANCE_CORRECTIONS, 
-  INITIAL_EXPENSES, 
   INITIAL_SUPPORT_TICKETS, 
   INITIAL_ASSETS, 
   INITIAL_ANNOUNCEMENTS, 
@@ -58,7 +56,6 @@ export default function App() {
   // HRMS Architecture Extensions State
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE_RECORDS);
   const [attendanceCorrections, setAttendanceCorrections] = useState<AttendanceCorrection[]>(INITIAL_ATTENDANCE_CORRECTIONS);
-  const [expenses, setExpenses] = useState<ExpenseRequest[]>(INITIAL_EXPENSES);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(INITIAL_SUPPORT_TICKETS);
   const [assets, setAssets] = useState<AssetItem[]>(INITIAL_ASSETS);
   const [announcements, setAnnouncements] = useState<Announcement[]>(INITIAL_ANNOUNCEMENTS);
@@ -70,13 +67,14 @@ export default function App() {
   const fetchAllData = async () => {
     setLoadingData(true);
     try {
-      const [empRes, leaveRes, payRes, candRes, goalRes, actRes] = await Promise.all([
+      const [empRes, leaveRes, payRes, candRes, goalRes, actRes, tckRes] = await Promise.all([
         fetch('/api/employees'),
         fetch('/api/leaves'),
         fetch('/api/payroll'),
         fetch('/api/candidates'),
         fetch('/api/goals'),
         fetch('/api/activities'),
+        fetch('/api/helpdesk'),
       ]);
 
       if (empRes.ok) setEmployees(await empRes.json());
@@ -85,6 +83,7 @@ export default function App() {
       if (candRes.ok) setCandidates(await candRes.json());
       if (goalRes.ok) setGoals(await goalRes.json());
       if (actRes.ok) setActivities(await actRes.json());
+      if (tckRes.ok) setSupportTickets(await tckRes.json());
     } catch (error) {
       console.error('Error loading HRMS data from backend:', error);
     } finally {
@@ -243,32 +242,44 @@ export default function App() {
     );
   };
 
-  // Handlers - Expenses
-  const handleSubmitExpense = (newExp: ExpenseRequest) => {
-    setExpenses((prev) => [newExp, ...prev]);
+  // Handlers - Helpdesk Support Tickets (Persisted in PostgreSQL)
+  const handleSubmitTicket = async (newTck: SupportTicket) => {
+    try {
+      const res = await fetch('/api/helpdesk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTck),
+      });
+      if (res.ok) {
+        const createdTck = await res.json();
+        setSupportTickets((prev) => [createdTck, ...prev]);
+      } else {
+        setSupportTickets((prev) => [newTck, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error submitting helpdesk ticket:', error);
+      setSupportTickets((prev) => [newTck, ...prev]);
+    }
   };
 
-  const handleApproveExpense = (id: string) => {
-    setExpenses((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, status: 'Approved' } : e))
-    );
-  };
-
-  const handleRejectExpense = (id: string) => {
-    setExpenses((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, status: 'Rejected' } : e))
-    );
-  };
-
-  // Handlers - Support Tickets
-  const handleSubmitTicket = (newTck: SupportTicket) => {
-    setSupportTickets((prev) => [newTck, ...prev]);
-  };
-
-  const handleUpdateTicketStatus = (id: string, status: 'Open' | 'In Progress' | 'Resolved') => {
-    setSupportTickets((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status, lastUpdated: new Date().toISOString().split('T')[0] } : t))
-    );
+  const handleUpdateTicketStatus = async (id: string, status: 'Open' | 'In Progress' | 'Resolved') => {
+    try {
+      const res = await fetch(`/api/helpdesk/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        setSupportTickets((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, status, lastUpdated: new Date().toISOString().split('T')[0] } : t))
+        );
+      }
+    } catch (error) {
+      console.error('Error updating ticket status:', error);
+      setSupportTickets((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, status, lastUpdated: new Date().toISOString().split('T')[0] } : t))
+      );
+    }
   };
 
   // Handlers - Candidate / Onboarding
@@ -405,7 +416,6 @@ export default function App() {
               activities={activities}
               attendanceRecords={attendanceRecords}
               attendanceCorrections={attendanceCorrections}
-              expenses={expenses}
               supportTickets={supportTickets}
               assets={assets}
               announcements={announcements}
@@ -416,12 +426,9 @@ export default function App() {
               onRejectLeave={handleRejectLeave}
               onApproveCorrection={handleApproveCorrection}
               onRejectCorrection={handleRejectCorrection}
-              onApproveExpense={handleApproveExpense}
-              onRejectExpense={handleRejectExpense}
               onUpdateTicketStatus={handleUpdateTicketStatus}
               onRequestLeave={handleRequestLeave}
               onRequestCorrection={handleRequestCorrection}
-              onSubmitExpense={handleSubmitExpense}
               onSubmitTicket={handleSubmitTicket}
               onUpdateEmployeeProfile={handleUpdateEmployeeProfile}
               onUpdateEmployeeDocuments={handleUpdateEmployeeDocuments}

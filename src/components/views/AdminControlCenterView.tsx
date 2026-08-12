@@ -5,20 +5,15 @@ import {
   Calendar, 
   DollarSign, 
   TrendingUp, 
-  ArrowUpRight, 
   Sparkles, 
   Clock, 
   CheckCircle2, 
   ChevronRight,
   Award,
   FileText,
-  Building2,
   ShieldCheck,
   Briefcase,
-  Helpdesk,
   Layers,
-  Settings,
-  PieChart,
   BarChart3,
   FileSpreadsheet,
   AlertCircle,
@@ -28,9 +23,7 @@ import {
   Filter,
   Download,
   Plus,
-  Lock,
-  Database,
-  Bell
+  LifeBuoy
 } from 'lucide-react';
 import { 
   Employee, 
@@ -42,7 +35,6 @@ import {
   UserAccount, 
   AttendanceRecord,
   AttendanceCorrection,
-  ExpenseRequest,
   SupportTicket,
   AssetItem
 } from '../../types';
@@ -55,7 +47,6 @@ interface AdminControlCenterViewProps {
   activities: ActivityLog[];
   attendanceRecords: AttendanceRecord[];
   attendanceCorrections: AttendanceCorrection[];
-  expenses: ExpenseRequest[];
   supportTickets: SupportTicket[];
   assets: AssetItem[];
   currentUser: UserAccount | null;
@@ -64,8 +55,6 @@ interface AdminControlCenterViewProps {
   onRejectLeave: (id: string) => void;
   onApproveCorrection: (id: string) => void;
   onRejectCorrection: (id: string) => void;
-  onApproveExpense: (id: string) => void;
-  onRejectExpense: (id: string) => void;
   onUpdateTicketStatus: (id: string, status: 'Open' | 'In Progress' | 'Resolved') => void;
 }
 
@@ -77,7 +66,6 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
   activities,
   attendanceRecords,
   attendanceCorrections,
-  expenses,
   supportTickets,
   assets,
   currentUser,
@@ -86,15 +74,13 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
   onRejectLeave,
   onApproveCorrection,
   onRejectCorrection,
-  onApproveExpense,
-  onRejectExpense,
   onUpdateTicketStatus
 }) => {
   const [activeTab, setActiveTab] = useState<
     'workforce' | 'approvals' | 'analytics' | 'talent' | 'operations' | 'reports' | 'administration'
   >('workforce');
 
-  const [approvalSubTab, setApprovalSubTab] = useState<'leave' | 'attendance' | 'expenses' | 'requests'>('leave');
+  const [approvalSubTab, setApprovalSubTab] = useState<'leave' | 'attendance' | 'requests'>('leave');
   const [workforceSubTab, setWorkforceSubTab] = useState<'total' | 'present' | 'leave' | 'growth'>('total');
   const [analyticsSubTab, setAnalyticsSubTab] = useState<'attendance' | 'leave' | 'workforce' | 'department'>('attendance');
   const [talentSubTab, setTalentSubTab] = useState<'recruitment' | 'performance' | 'training'>('recruitment');
@@ -107,7 +93,6 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
   const onLeaveCount = employees.filter(e => e.status === 'On Leave').length;
   const pendingLeaves = leaveRequests.filter(r => r.status === 'Pending');
   const pendingCorrections = attendanceCorrections.filter(c => c.status === 'Pending');
-  const pendingExpenses = expenses.filter(e => e.status === 'Pending');
   const openTickets = supportTickets.filter(t => t.status !== 'Resolved');
   const activeOnboarding = candidates.filter(c => c.stage === 'Onboarding' || c.stage === 'Offer Extended');
   const totalPayrollMonth = payroll.reduce((acc, curr) => acc + curr.netPay, 0);
@@ -136,7 +121,7 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
               Enterprise HR Operations & Governance
             </h2>
             <p className="text-xs text-slate-200 max-w-2xl leading-relaxed">
-              Real-time oversight across {employees.length} workforce members, {pendingLeaves.length + pendingCorrections.length + pendingExpenses.length} pending approvals, and ${ (totalPayrollMonth / 1000).toFixed(1) }k active payroll.
+              Real-time oversight across {employees.length} workforce members, {pendingLeaves.length + pendingCorrections.length} pending approvals, and {openTickets.length} open helpdesk tickets.
             </p>
           </div>
 
@@ -166,10 +151,10 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
         <div className="flex items-center gap-1 min-w-max">
           {[
             { id: 'workforce', label: 'Workforce', icon: Users, count: employees.length },
-            { id: 'approvals', label: 'Approvals', icon: CheckCircle2, count: pendingLeaves.length + pendingCorrections.length + pendingExpenses.length, badgeColor: 'bg-amber-500 text-white' },
+            { id: 'approvals', label: 'Approvals', icon: CheckCircle2, count: pendingLeaves.length + pendingCorrections.length, badgeColor: 'bg-amber-500 text-white' },
             { id: 'analytics', label: 'Analytics', icon: BarChart3 },
             { id: 'talent', label: 'Talent', icon: Award, count: candidates.length },
-            { id: 'operations', label: 'Operations', icon: Briefcase, count: openTickets.length },
+            { id: 'operations', label: 'Operations & Helpdesk', icon: Briefcase, count: openTickets.length, badgeColor: 'bg-red-500 text-white' },
             { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
             { id: 'administration', label: 'Administration', icon: ShieldCheck },
           ].map((tab) => {
@@ -203,7 +188,6 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
       {/* TAB 1: WORKFORCE CONTROL */}
       {activeTab === 'workforce' && (
         <div className="space-y-6">
-          {/* Sub-navigation bar */}
           <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
             {[
               { id: 'total', label: 'Total Employees', count: employees.length },
@@ -226,7 +210,6 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
             ))}
           </div>
 
-          {/* Quick Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs">
               <div className="flex items-center justify-between">
@@ -241,7 +224,7 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                   <TrendingUp className="w-3 h-3" /> Active
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">Global active profiles across all divisions</p>
+              <p className="text-xs text-slate-500 mt-1">Global active profiles in PostgreSQL</p>
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs">
@@ -293,12 +276,11 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
             </div>
           </div>
 
-          {/* Table of Employees under Workforce */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
               <div>
                 <h3 className="text-sm font-bold text-[#1a2b3c]">Workforce Member Directory</h3>
-                <p className="text-xs text-slate-500">Live employee list with department, location & compensation access</p>
+                <p className="text-xs text-slate-500">Live employee list with department & location access</p>
               </div>
               <button
                 onClick={() => onNavigate('employees')}
@@ -318,7 +300,6 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                     <th className="p-3">Status</th>
                     <th className="p-3">Location</th>
                     <th className="p-3">Join Date</th>
-                    <th className="p-3 text-right pr-4">Annual Compensation</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -347,7 +328,6 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                       </td>
                       <td className="p-3 text-slate-500">{emp.location}</td>
                       <td className="p-3 text-slate-500">{emp.joinDate}</td>
-                      <td className="p-3 text-right pr-4 font-bold text-slate-900">${emp.salary?.toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -360,12 +340,10 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
       {/* TAB 2: APPROVALS CONTROL CENTER */}
       {activeTab === 'approvals' && (
         <div className="space-y-6">
-          {/* Sub-tabs: Leave, Attendance, Expenses, Employee Requests */}
           <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
             {[
               { id: 'leave', label: 'Leave Approvals', count: pendingLeaves.length },
               { id: 'attendance', label: 'Attendance Corrections', count: pendingCorrections.length },
-              { id: 'expenses', label: 'Expense Claims', count: pendingExpenses.length },
               { id: 'requests', label: 'Employee Requests', count: 0 },
             ].map((sub) => (
               <button
@@ -385,7 +363,6 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
             ))}
           </div>
 
-          {/* Sub-view: Leave Approvals */}
           {approvalSubTab === 'leave' && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
               <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
@@ -439,7 +416,6 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
             </div>
           )}
 
-          {/* Sub-view: Attendance Corrections */}
           {approvalSubTab === 'attendance' && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
               <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
@@ -449,11 +425,11 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                 </div>
               </div>
 
-              {attendanceCorrections.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-xs">No attendance correction requests.</div>
+              {pendingCorrections.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs">No pending attendance correction requests.</div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {attendanceCorrections.map((cor) => (
+                  {pendingCorrections.map((cor) => (
                     <div key={cor.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/80 transition-colors">
                       <div>
                         <div className="flex items-center gap-2">
@@ -467,16 +443,8 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {cor.status === 'Pending' ? (
-                          <>
-                            <button onClick={() => onRejectCorrection(cor.id)} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 hover:bg-slate-100">Reject</button>
-                            <button onClick={() => onApproveCorrection(cor.id)} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Approve Correction</button>
-                          </>
-                        ) : (
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${cor.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                            {cor.status}
-                          </span>
-                        )}
+                        <button onClick={() => onRejectCorrection(cor.id)} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 hover:bg-slate-100">Reject</button>
+                        <button onClick={() => onApproveCorrection(cor.id)} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Approve Correction</button>
                       </div>
                     </div>
                   ))}
@@ -485,47 +453,6 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
             </div>
           )}
 
-          {/* Sub-view: Expenses */}
-          {approvalSubTab === 'expenses' && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-              <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-                <div>
-                  <h3 className="text-sm font-bold text-[#1a2b3c]">Expense Claims ({expenses.length})</h3>
-                  <p className="text-xs text-slate-500">Employee expense reimbursements for software, travel & client meetings</p>
-                </div>
-              </div>
-
-              <div className="divide-y divide-slate-100">
-                {expenses.map((exp) => (
-                  <div key={exp.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/80 transition-colors">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-bold text-[#1a2b3c]">{exp.employeeName}</p>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700">{exp.category}</span>
-                      </div>
-                      <p className="text-sm font-extrabold text-[#1a2b3c] mt-1">${exp.amount.toFixed(2)}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{exp.description} • {exp.date}</p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {exp.status === 'Pending' ? (
-                        <>
-                          <button onClick={() => onRejectExpense(exp.id)} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 hover:bg-slate-100">Reject</button>
-                          <button onClick={() => onApproveExpense(exp.id)} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-700">Approve & Reimburse</button>
-                        </>
-                      ) : (
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${exp.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                          {exp.status}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Sub-view: Employee Requests */}
           {approvalSubTab === 'requests' && (
             <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500 text-xs shadow-2xs">
               <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
@@ -543,7 +470,7 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
               { id: 'attendance', label: 'Attendance Analytics' },
               { id: 'leave', label: 'Leave Utilization' },
               { id: 'workforce', label: 'Workforce Demographics' },
-              { id: 'department', label: 'Department Headcount & Cost' },
+              { id: 'department', label: 'Department Headcount' },
             ].map((sub) => (
               <button
                 key={sub.id}
@@ -559,7 +486,6 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
             ))}
           </div>
 
-          {/* Department Breakdown */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-4">
               <h3 className="text-sm font-bold text-[#1a2b3c]">Department Headcount Ratio</h3>
@@ -641,44 +567,51 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {candidates.map((c) => (
-                <div key={c.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-800">{c.stage}</span>
-                    <span className="text-[10px] text-slate-400">{c.appliedDate}</span>
+            {candidates.length === 0 ? (
+              <div className="p-8 text-center text-slate-500 text-xs">No active onboarding candidates.</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {candidates.map((c) => (
+                  <div key={c.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-800">{c.stage}</span>
+                      <span className="text-[10px] text-slate-400">{c.appliedDate}</span>
+                    </div>
+                    <p className="font-bold text-sm text-[#1a2b3c]">{c.name}</p>
+                    <p className="text-xs text-slate-600">{c.role} • {c.department}</p>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-2">
+                      <div className="bg-teal-600 h-full rounded-full" style={{ width: `${(c.tasksCompleted / (c.totalTasks || 1)) * 100}%` }} />
+                    </div>
                   </div>
-                  <p className="font-bold text-sm text-[#1a2b3c]">{c.name}</p>
-                  <p className="text-xs text-slate-600">{c.role} • {c.department}</p>
-                  <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-2">
-                    <div className="bg-teal-600 h-full rounded-full" style={{ width: `${(c.tasksCompleted / (c.totalTasks || 1)) * 100}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* TAB 5: OPERATIONS */}
+      {/* TAB 5: OPERATIONS & HELPDESK (Persisted to PostgreSQL) */}
       {activeTab === 'operations' && (
         <div className="space-y-6">
           <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
             {[
               { id: 'payroll', label: 'Payroll Operations' },
               { id: 'assets', label: 'Asset Management', count: assets.length },
-              { id: 'helpdesk', label: 'Helpdesk & Support', count: openTickets.length },
+              { id: 'helpdesk', label: 'Helpdesk & Support Center', count: openTickets.length, badgeColor: 'bg-red-500 text-white' },
             ].map((sub) => (
               <button
                 key={sub.id}
                 onClick={() => setOperationsSubTab(sub.id as any)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
                   operationsSubTab === sub.id
                     ? 'bg-blue-50 text-blue-800 border border-blue-300 font-bold'
                     : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                {sub.label}
+                <span>{sub.label}</span>
+                {sub.count !== undefined && sub.count > 0 && (
+                  <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full ${sub.badgeColor || 'bg-slate-200 text-slate-800'}`}>{sub.count}</span>
+                )}
               </button>
             ))}
           </div>
@@ -686,8 +619,8 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
           {operationsSubTab === 'payroll' && (
             <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-[#1a2b3c]">Enterprise Payroll Batch Disbursement</h3>
-                <p className="text-xs text-slate-500">Bi-weekly payroll automated batch processing & tax calculations</p>
+                <h3 className="text-sm font-bold text-[#1a2b3c]">Enterprise Payroll Operations</h3>
+                <p className="text-xs text-slate-500">Bi-weekly payroll automated batch processing & direct deposit</p>
               </div>
               <button onClick={() => onNavigate('payroll')} className="px-4 py-2 bg-[#1a2b3c] text-white font-bold text-xs rounded-xl hover:bg-[#041627]">
                 Manage Payroll Portal &rarr;
@@ -700,61 +633,86 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
               <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
                 <h3 className="text-sm font-bold text-[#1a2b3c]">Company Assigned Assets ({assets.length})</h3>
               </div>
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-100 text-slate-600 font-bold uppercase border-b border-slate-200">
-                  <tr>
-                    <th className="p-3 pl-4">Asset Name</th>
-                    <th className="p-3">Category</th>
-                    <th className="p-3">Serial Number</th>
-                    <th className="p-3">Assigned To</th>
-                    <th className="p-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {assets.map((a) => (
-                    <tr key={a.id} className="hover:bg-slate-50">
-                      <td className="p-3 pl-4 font-bold text-[#1a2b3c]">{a.assetName}</td>
-                      <td className="p-3 text-slate-600">{a.category}</td>
-                      <td className="p-3 text-slate-500 font-mono">{a.serialNumber}</td>
-                      <td className="p-3 font-semibold text-slate-800">{a.assignedToName}</td>
-                      <td className="p-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">{a.status}</span></td>
+              {assets.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs">No assets assigned currently.</div>
+              ) : (
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-600 font-bold uppercase border-b border-slate-200">
+                    <tr>
+                      <th className="p-3 pl-4">Asset Name</th>
+                      <th className="p-3">Category</th>
+                      <th className="p-3">Serial Number</th>
+                      <th className="p-3">Assigned To</th>
+                      <th className="p-3">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {assets.map((a) => (
+                      <tr key={a.id} className="hover:bg-slate-50">
+                        <td className="p-3 pl-4 font-bold text-[#1a2b3c]">{a.assetName}</td>
+                        <td className="p-3 text-slate-600">{a.category}</td>
+                        <td className="p-3 text-slate-500 font-mono">{a.serialNumber}</td>
+                        <td className="p-3 font-semibold text-slate-800">{a.assignedToName}</td>
+                        <td className="p-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">{a.status}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
 
+          {/* HELPDESK TICKETS ADMIN RESOLUTION PANEL (PostgreSQL Backed) */}
           {operationsSubTab === 'helpdesk' && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden space-y-4">
               <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-                <h3 className="text-sm font-bold text-[#1a2b3c]">IT Support Tickets ({supportTickets.length})</h3>
+                <div>
+                  <h3 className="text-sm font-bold text-[#1a2b3c] flex items-center gap-2">
+                    <LifeBuoy className="w-4 h-4 text-red-600" /> Admin Helpdesk Ticket Resolver ({supportTickets.length} Total, {openTickets.length} Open)
+                  </h3>
+                  <p className="text-xs text-slate-500">Real-time tickets submitted by employees, stored in PostgreSQL database</p>
+                </div>
               </div>
-              <div className="divide-y divide-slate-100">
-                {supportTickets.map((t) => (
-                  <div key={t.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-[#1a2b3c]">{t.id}: {t.subject}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-50 text-purple-700">{t.category}</span>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1">Raised by {t.employeeName} • {t.createdAt}</p>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={t.status}
-                        onChange={(e) => onUpdateTicketStatus(t.id, e.target.value as any)}
-                        className="text-xs font-bold border border-slate-300 rounded-lg px-2 py-1 bg-white text-slate-800"
-                      >
-                        <option value="Open">Open</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Resolved">Resolved</option>
-                      </select>
+              {supportTickets.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                  No support tickets raised yet. Clean PostgreSQL database state.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {supportTickets.map((t) => (
+                    <div key={t.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/80 transition-colors">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-[#1a2b3c]">{t.id}: {t.subject}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">{t.category}</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                            t.priority === 'Urgent' || t.priority === 'High' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {t.priority} Priority
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-700">"{t.description}"</p>
+                        <p className="text-[11px] text-slate-500">Raised by: <strong className="text-slate-900">{t.employeeName}</strong> • Date: {t.createdAt}</p>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-xs text-slate-500 font-medium">Update Ticket Status:</span>
+                        <select
+                          value={t.status}
+                          onChange={(e) => onUpdateTicketStatus(t.id, e.target.value as any)}
+                          className="text-xs font-bold border border-slate-300 rounded-lg px-3 py-1.5 bg-white text-slate-900 shadow-xs focus:ring-2 focus:ring-blue-100"
+                        >
+                          <option value="Open">🔴 Open</option>
+                          <option value="In Progress">🟡 In Progress</option>
+                          <option value="Resolved">🟢 Resolved</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -772,7 +730,7 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
             {[
-              { title: 'Workforce Master Report', desc: 'Complete headcount details, roles, salaries & contact info.', format: 'CSV / Excel' },
+              { title: 'Workforce Master Report', desc: 'Complete headcount details, roles & contact info.', format: 'CSV / Excel' },
               { title: 'Monthly Attendance Register', desc: 'Daily punch logs, total working hours & late occurrences.', format: 'PDF / Excel' },
               { title: 'Leave Balance & Audit Report', desc: 'Approved, pending and remaining PTO allocations.', format: 'CSV' },
               { title: 'Tax & Payroll Register', desc: 'Gross salary, PF deductions, tax withholdings & net pay.', format: 'PDF' },
@@ -839,11 +797,11 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
                     <p className="font-bold text-[#1a2b3c] flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-amber-600" /> Admin Role</p>
-                    <p className="text-slate-600">Full system authority, headcount management, payroll processing, policy configuration, audit logs access.</p>
+                    <p className="text-slate-600">Full system authority, headcount management, payroll processing, helpdesk resolution, audit logs access.</p>
                   </div>
                   <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
                     <p className="font-bold text-[#1a2b3c] flex items-center gap-1.5"><UserCheck className="w-4 h-4 text-teal-600" /> Employee Role</p>
-                    <p className="text-slate-600">Restricted access to own profile, personal attendance check-in, leave applications, payslip downloads, assets.</p>
+                    <p className="text-slate-600">Restricted access to own profile, personal attendance check-in, leave applications, helpdesk ticket submission.</p>
                   </div>
                 </div>
               </div>

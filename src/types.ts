@@ -169,18 +169,6 @@ export interface AttendanceCorrection {
   requestedOn: string;
 }
 
-export interface ExpenseRequest {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  category: 'Travel' | 'Client Meeting' | 'Software Tool' | 'Office Supplies' | 'Medical';
-  amount: number;
-  date: string;
-  description: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
-  approverNote?: string;
-}
-
 export interface SupportTicket {
   id: string;
   employeeId: string;
@@ -222,7 +210,7 @@ export interface NotificationItem {
   message: string;
   timestamp: string;
   read: boolean;
-  type: 'leave' | 'attendance' | 'payroll' | 'ticket' | 'expense' | 'announcement';
+  type: 'leave' | 'attendance' | 'payroll' | 'ticket' | 'announcement';
 }
 
 export interface PayrollRecord {

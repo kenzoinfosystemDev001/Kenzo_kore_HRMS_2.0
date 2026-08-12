@@ -10,7 +10,6 @@ import {
   EmployeeDocument,
   AttendanceRecord,
   AttendanceCorrection,
-  ExpenseRequest,
   SupportTicket,
   AssetItem,
   Announcement,
@@ -27,7 +26,6 @@ interface DashboardViewProps {
   activities: ActivityLog[];
   attendanceRecords: AttendanceRecord[];
   attendanceCorrections: AttendanceCorrection[];
-  expenses: ExpenseRequest[];
   supportTickets: SupportTicket[];
   assets: AssetItem[];
   announcements: Announcement[];
@@ -38,12 +36,9 @@ interface DashboardViewProps {
   onRejectLeave: (id: string) => void;
   onApproveCorrection: (id: string) => void;
   onRejectCorrection: (id: string) => void;
-  onApproveExpense: (id: string) => void;
-  onRejectExpense: (id: string) => void;
   onUpdateTicketStatus: (id: string, status: 'Open' | 'In Progress' | 'Resolved') => void;
   onRequestLeave: (newReq: LeaveRequest) => void;
   onRequestCorrection: (newCor: AttendanceCorrection) => void;
-  onSubmitExpense: (newExp: ExpenseRequest) => void;
   onSubmitTicket: (newTck: SupportTicket) => void;
   onUpdateEmployeeProfile?: (id: string, updatedData: Partial<Employee>) => void;
   onUpdateEmployeeDocuments?: (id: string, docs: EmployeeDocument[]) => void;
@@ -62,7 +57,6 @@ export const DashboardView: React.FC<DashboardViewProps> = (props) => {
         activities={props.activities}
         attendanceRecords={props.attendanceRecords}
         attendanceCorrections={props.attendanceCorrections}
-        expenses={props.expenses}
         supportTickets={props.supportTickets}
         assets={props.assets}
         currentUser={props.currentUser}
@@ -71,8 +65,6 @@ export const DashboardView: React.FC<DashboardViewProps> = (props) => {
         onRejectLeave={props.onRejectLeave}
         onApproveCorrection={props.onApproveCorrection}
         onRejectCorrection={props.onRejectCorrection}
-        onApproveExpense={props.onApproveExpense}
-        onRejectExpense={props.onRejectExpense}
         onUpdateTicketStatus={props.onUpdateTicketStatus}
       />
     );
@@ -85,7 +77,6 @@ export const DashboardView: React.FC<DashboardViewProps> = (props) => {
       payroll={props.payroll}
       attendanceRecords={props.attendanceRecords}
       attendanceCorrections={props.attendanceCorrections}
-      expenses={props.expenses}
       supportTickets={props.supportTickets}
       assets={props.assets}
       announcements={props.announcements}
@@ -94,7 +85,6 @@ export const DashboardView: React.FC<DashboardViewProps> = (props) => {
       onNavigate={props.onNavigate}
       onRequestLeave={props.onRequestLeave}
       onRequestCorrection={props.onRequestCorrection}
-      onSubmitExpense={props.onSubmitExpense}
       onSubmitTicket={props.onSubmitTicket}
       onUpdateEmployeeProfile={props.onUpdateEmployeeProfile}
       onUpdateEmployeeDocuments={props.onUpdateEmployeeDocuments}

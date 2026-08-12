@@ -34,7 +34,6 @@ import {
   EmployeeDocument,
   AttendanceRecord,
   AttendanceCorrection,
-  ExpenseRequest,
   SupportTicket,
   AssetItem,
   Announcement,
@@ -48,7 +47,6 @@ interface EmployeeDashboardViewProps {
   payroll: PayrollRecord[];
   attendanceRecords: AttendanceRecord[];
   attendanceCorrections: AttendanceCorrection[];
-  expenses: ExpenseRequest[];
   supportTickets: SupportTicket[];
   assets: AssetItem[];
   announcements: Announcement[];
@@ -57,7 +55,6 @@ interface EmployeeDashboardViewProps {
   onNavigate: (view: NavView) => void;
   onRequestLeave: (newReq: LeaveRequest) => void;
   onRequestCorrection: (newCor: AttendanceCorrection) => void;
-  onSubmitExpense: (newExp: ExpenseRequest) => void;
   onSubmitTicket: (newTck: SupportTicket) => void;
   onUpdateEmployeeProfile?: (id: string, updatedData: Partial<Employee>) => void;
   onUpdateEmployeeDocuments?: (id: string, docs: EmployeeDocument[]) => void;
@@ -69,7 +66,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
   payroll,
   attendanceRecords,
   attendanceCorrections,
-  expenses,
   supportTickets,
   assets,
   announcements,
@@ -78,7 +74,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
   onNavigate,
   onRequestLeave,
   onRequestCorrection,
-  onSubmitExpense,
   onSubmitTicket,
   onUpdateEmployeeProfile,
   onUpdateEmployeeDocuments,
@@ -93,7 +88,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
   const [isApplyLeaveModalOpen, setIsApplyLeaveModalOpen] = useState(false);
   const [isCorrectionModalOpen, setIsCorrectionModalOpen] = useState(false);
   const [isRaiseTicketModalOpen, setIsRaiseTicketModalOpen] = useState(false);
-  const [isSubmitExpenseModalOpen, setIsSubmitExpenseModalOpen] = useState(false);
   const [isPayslipModalOpen, setIsPayslipModalOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
@@ -113,10 +107,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
   const [tckPriority, setTckPriority] = useState<'Low' | 'Medium' | 'High' | 'Urgent'>('Medium');
   const [tckDesc, setTckDesc] = useState('');
 
-  const [expCategory, setExpCategory] = useState<'Travel' | 'Client Meeting' | 'Software Tool' | 'Office Supplies' | 'Medical'>('Software Tool');
-  const [expAmount, setExpAmount] = useState('');
-  const [expDesc, setExpDesc] = useState('');
-
   const [searchFilter, setSearchFilter] = useState('');
 
   useEffect(() => {
@@ -134,13 +124,11 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
   });
 
   // Employee specific records
-  const myLeaves = leaveRequests.filter(r => r.employeeId === currentUser?.id || r.employeeName === currentUser?.name);
-  const myPayroll = payroll.find(p => p.employeeId === currentUser?.id || p.employeeName === currentUser?.name);
-  const myAttendance = attendanceRecords.filter(a => a.employeeId === currentUser?.id || a.employeeName === currentUser?.name);
-  const myCorrections = attendanceCorrections.filter(c => c.employeeId === currentUser?.id || c.employeeName === currentUser?.name);
-  const myAssets = assets.filter(a => a.assignedToId === currentUser?.id || a.assignedToName === currentUser?.name);
-  const myTickets = supportTickets.filter(t => t.employeeId === currentUser?.id || t.employeeName === currentUser?.name);
-  const myExpenses = expenses.filter(e => e.employeeId === currentUser?.id || e.employeeName === currentUser?.name);
+  const myLeaves = leaveRequests.filter(r => r.employeeId === currentUser?.id || r.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
+  const myPayroll = payroll.find(p => p.employeeId === currentUser?.id || p.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
+  const myAttendance = attendanceRecords.filter(a => a.employeeId === currentUser?.id || a.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
+  const myAssets = assets.filter(a => a.assignedToId === currentUser?.id || a.assignedToName.toLowerCase() === currentUser?.name.toLowerCase());
+  const myTickets = supportTickets.filter(t => t.employeeId === currentUser?.id || t.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
 
   const myEmployeeRecord: Employee = employees.find(e => e.id === currentUser?.id || e.email.toLowerCase() === currentUser?.email.toLowerCase()) || {
     id: currentUser?.id || 'EMP-1001',
@@ -233,25 +221,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
     setTckDesc('');
   };
 
-  const handleExpenseSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!expAmount || !expDesc.trim()) return;
-    const newExp: ExpenseRequest = {
-      id: `EXP-${Math.floor(100 + Math.random() * 900)}`,
-      employeeId: currentUser?.id || 'EMP-1001',
-      employeeName: currentUser?.name || 'Sujal kumar',
-      category: expCategory,
-      amount: parseFloat(expAmount),
-      date: new Date().toISOString().split('T')[0],
-      description: expDesc,
-      status: 'Pending',
-    };
-    onSubmitExpense(newExp);
-    setIsSubmitExpenseModalOpen(false);
-    setExpAmount('');
-    setExpDesc('');
-  };
-
   return (
     <div className="space-y-6">
       {/* 1. RESTRICTED EMPLOYEE HEADER SEARCH & SCOPE INFORMATION BAR */}
@@ -279,7 +248,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search my requests, policies, tickets..."
+              placeholder="Search my requests, tickets..."
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-[#0060ac] transition-all text-slate-800"
@@ -292,7 +261,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
             title="My Notifications"
           >
             <Bell className="w-4 h-4" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
           </button>
         </div>
       </div>
@@ -309,17 +277,21 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
             </button>
           </div>
 
-          <div className="space-y-2">
-            {notifications.map((n) => (
-              <div key={n.id} className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-xs flex justify-between items-start">
-                <div>
-                  <p className="font-bold text-[#1a2b3c]">{n.title}</p>
-                  <p className="text-slate-600 mt-0.5">{n.message}</p>
+          {notifications.length === 0 ? (
+            <p className="text-xs text-slate-400 py-2">No notifications.</p>
+          ) : (
+            <div className="space-y-2">
+              {notifications.map((n) => (
+                <div key={n.id} className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-xs flex justify-between items-start">
+                  <div>
+                    <p className="font-bold text-[#1a2b3c]">{n.title}</p>
+                    <p className="text-slate-600 mt-0.5">{n.message}</p>
+                  </div>
+                  <span className="text-[10px] text-slate-400 shrink-0">{n.timestamp}</span>
                 </div>
-                <span className="text-[10px] text-slate-400 shrink-0">{n.timestamp}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -363,10 +335,10 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-white/5 skew-x-12 pointer-events-none" />
       </div>
 
-      {/* 3. QUICK ACTIONS BAR */}
+      {/* 3. QUICK ACTIONS BAR (Expenses Removed) */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
         <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Quick Workday Actions</h4>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <button
             onClick={() => setIsApplyLeaveModalOpen(true)}
             className="p-3 rounded-xl border border-blue-200 bg-blue-50/60 hover:bg-blue-100/70 text-[#0060ac] font-bold text-xs flex items-center gap-2.5 transition-all text-left"
@@ -396,19 +368,11 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
           </button>
 
           <button
-            onClick={() => setIsSubmitExpenseModalOpen(true)}
-            className="p-3 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-100/70 text-amber-800 font-bold text-xs flex items-center gap-2.5 transition-all text-left"
-          >
-            <DollarSign className="w-4 h-4 shrink-0" />
-            <span>Submit Expense</span>
-          </button>
-
-          <button
             onClick={() => setIsCorrectionModalOpen(true)}
             className="p-3 rounded-xl border border-purple-200 bg-purple-50/60 hover:bg-purple-100/70 text-purple-800 font-bold text-xs flex items-center gap-2.5 transition-all text-left"
           >
             <Clock className="w-4 h-4 shrink-0" />
-            <span>Request Correction</span>
+            <span>Request Punch Correction</span>
           </button>
 
           <button
@@ -423,7 +387,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
 
       {/* 4. TODAY'S ATTENDANCE & LEAVE BALANCE CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Today's Attendance */}
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs space-y-3 flex flex-col justify-between hover:shadow-xs transition-all">
           <div>
             <div className="flex items-center justify-between">
@@ -460,7 +423,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
           </button>
         </div>
 
-        {/* Card 2: PTO Leave Balance */}
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs space-y-3 flex flex-col justify-between hover:shadow-xs transition-all">
           <div>
             <div className="flex items-center justify-between">
@@ -486,7 +448,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
           </button>
         </div>
 
-        {/* Card 3: Sick Leave Balance */}
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs space-y-3 flex flex-col justify-between hover:shadow-xs transition-all">
           <div>
             <div className="flex items-center justify-between">
@@ -512,7 +473,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
           </button>
         </div>
 
-        {/* Card 4: My Monthly Compensation & Payslip */}
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs space-y-3 flex flex-col justify-between hover:shadow-xs transition-all">
           <div>
             <div className="flex items-center justify-between">
@@ -544,7 +504,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
       {/* 5. MAIN CONTENT SPLIT: ATTENDANCE HISTORY & MY LEAVE REQUESTS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {/* Attendance History (/attendance/me/history) */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2">
@@ -555,47 +514,50 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
                 onClick={() => setIsCorrectionModalOpen(true)}
                 className="text-xs font-bold text-[#0060ac] hover:underline"
               >
-                + Request Correction
+                + Request Punch Correction
               </button>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-100 text-slate-600 font-bold uppercase border-b border-slate-200">
-                  <tr>
-                    <th className="p-3 pl-4">Date</th>
-                    <th className="p-3">Check In</th>
-                    <th className="p-3">Check Out</th>
-                    <th className="p-3">Work Duration</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Location</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {myAttendance.slice(0, 5).map((att) => (
-                    <tr key={att.id} className="hover:bg-slate-50">
-                      <td className="p-3 pl-4 font-bold text-[#1a2b3c]">{att.date}</td>
-                      <td className="p-3 font-mono">{att.checkIn || '--'}</td>
-                      <td className="p-3 font-mono">{att.checkOut || '--'}</td>
-                      <td className="p-3 font-semibold">{att.workHours}</td>
-                      <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          att.status === 'Present' ? 'bg-emerald-100 text-emerald-800' :
-                          att.status === 'Late' ? 'bg-amber-100 text-amber-800' :
-                          'bg-purple-100 text-purple-800'
-                        }`}>
-                          {att.status}
-                        </span>
-                      </td>
-                      <td className="p-3 text-slate-500">{att.location}</td>
+            {myAttendance.length === 0 ? (
+              <div className="p-6 text-center text-slate-500 text-xs">No recent attendance history logs recorded.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-600 font-bold uppercase border-b border-slate-200">
+                    <tr>
+                      <th className="p-3 pl-4">Date</th>
+                      <th className="p-3">Check In</th>
+                      <th className="p-3">Check Out</th>
+                      <th className="p-3">Work Duration</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3">Location</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {myAttendance.map((att) => (
+                      <tr key={att.id} className="hover:bg-slate-50">
+                        <td className="p-3 pl-4 font-bold text-[#1a2b3c]">{att.date}</td>
+                        <td className="p-3 font-mono">{att.checkIn || '--'}</td>
+                        <td className="p-3 font-mono">{att.checkOut || '--'}</td>
+                        <td className="p-3 font-semibold">{att.workHours}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            att.status === 'Present' ? 'bg-emerald-100 text-emerald-800' :
+                            att.status === 'Late' ? 'bg-amber-100 text-amber-800' :
+                            'bg-purple-100 text-purple-800'
+                          }`}>
+                            {att.status}
+                          </span>
+                        </td>
+                        <td className="p-3 text-slate-500">{att.location}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
-          {/* My Leave Requests (/leave/me/requests) */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-[#1a2b3c]">My Leave Requests (/leave/me/requests)</h3>
@@ -609,7 +571,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
 
             {myLeaves.length === 0 ? (
               <div className="p-6 text-center text-slate-500 text-xs">
-                No leave requests submitted yet.
+                No leave requests submitted yet. Click "Apply Leave" to submit.
               </div>
             ) : (
               <div className="space-y-3">
@@ -638,7 +600,6 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
 
         {/* RIGHT SIDEBAR: MY ASSETS & HELPDESK TICKETS */}
         <div className="space-y-6">
-          {/* Company Assets Assigned (/assets/me) */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h3 className="text-sm font-bold text-[#1a2b3c] flex items-center gap-1.5">
@@ -646,20 +607,24 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
               </h3>
             </div>
 
-            <div className="space-y-2">
-              {myAssets.map((ast) => (
-                <div key={ast.id} className="p-3 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-between text-xs">
-                  <div>
-                    <p className="font-bold text-[#1a2b3c]">{ast.assetName}</p>
-                    <p className="text-[10px] text-slate-400 font-mono">S/N: {ast.serialNumber}</p>
+            {myAssets.length === 0 ? (
+              <div className="text-xs text-slate-400 py-2">No hardware assets currently assigned.</div>
+            ) : (
+              <div className="space-y-2">
+                {myAssets.map((ast) => (
+                  <div key={ast.id} className="p-3 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-bold text-[#1a2b3c]">{ast.assetName}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">S/N: {ast.serialNumber}</p>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">{ast.status}</span>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">{ast.status}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Helpdesk Support Tickets (/helpdesk/me) */}
+          {/* Helpdesk Support Tickets (PostgreSQL Backed) */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h3 className="text-sm font-bold text-[#1a2b3c] flex items-center gap-1.5">
@@ -670,44 +635,53 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
               </button>
             </div>
 
-            <div className="space-y-2">
-              {myTickets.map((tck) => (
-                <div key={tck.id} className="p-3 rounded-lg border border-slate-100 bg-slate-50 space-y-1 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-[#1a2b3c]">{tck.subject}</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      tck.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      {tck.status}
-                    </span>
+            {myTickets.length === 0 ? (
+              <div className="text-xs text-slate-400 py-2 text-center">
+                No support tickets raised yet. Click "+ Raise Ticket" to submit IT or HR inquiries.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {myTickets.map((tck) => (
+                  <div key={tck.id} className="p-3 rounded-lg border border-slate-100 bg-slate-50 space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#1a2b3c]">{tck.subject}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        tck.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 
+                        tck.status === 'In Progress' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {tck.status}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 italic">"{tck.description}"</p>
+                    <p className="text-[10px] text-slate-400">Category: {tck.category} • Priority: {tck.priority}</p>
                   </div>
-                  <p className="text-[10px] text-slate-400">Category: {tck.category} • Priority: {tck.priority}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Company Announcements (/announcements) */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-3">
             <h3 className="text-sm font-bold text-[#1a2b3c]">Company Announcements</h3>
-            <div className="space-y-3">
-              {announcements.map((anc) => (
-                <div key={anc.id} className="p-3 rounded-lg bg-blue-50/60 border border-blue-100 space-y-1 text-xs">
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold text-[#1a2b3c]">{anc.title}</p>
-                    <span className="text-[10px] text-slate-400">{anc.publishedDate}</span>
+            {announcements.length === 0 ? (
+              <p className="text-xs text-slate-400 py-2">No company announcements.</p>
+            ) : (
+              <div className="space-y-3">
+                {announcements.map((anc) => (
+                  <div key={anc.id} className="p-3 rounded-lg bg-blue-50/60 border border-blue-100 space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <p className="font-bold text-[#1a2b3c]">{anc.title}</p>
+                      <span className="text-[10px] text-slate-400">{anc.publishedDate}</span>
+                    </div>
+                    <p className="text-slate-600 text-[11px] leading-relaxed">{anc.content}</p>
                   </div>
-                  <p className="text-slate-600 text-[11px] leading-relaxed">{anc.content}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ---------------------------------------------------------------- */}
-      {/* MODAL 1: APPLY LEAVE FORM */}
-      {/* ---------------------------------------------------------------- */}
+      {/* MODAL 1: APPLY LEAVE */}
       {isApplyLeaveModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200">
@@ -788,9 +762,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
         </div>
       )}
 
-      {/* ---------------------------------------------------------------- */}
       {/* MODAL 2: REQUEST ATTENDANCE CORRECTION */}
-      {/* ---------------------------------------------------------------- */}
       {isCorrectionModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200">
@@ -867,9 +839,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
         </div>
       )}
 
-      {/* ---------------------------------------------------------------- */}
-      {/* MODAL 3: PAYSLIP PREVIEW & DOWNLOAD */}
-      {/* ---------------------------------------------------------------- */}
+      {/* MODAL 3: PAYSLIP PREVIEW */}
       {isPayslipModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-200">
@@ -939,15 +909,13 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
         </div>
       )}
 
-      {/* ---------------------------------------------------------------- */}
-      {/* MODAL 4: RAISE HELPDESK TICKET */}
-      {/* ---------------------------------------------------------------- */}
+      {/* MODAL 4: RAISE HELPDESK TICKET (PostgreSQL Persisted) */}
       {isRaiseTicketModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-[#1a2b3c] flex items-center gap-2">
-                <LifeBuoy className="w-5 h-5 text-red-600" /> Raise Support Ticket (POST /helpdesk/me)
+                <LifeBuoy className="w-5 h-5 text-red-600" /> Raise Support Ticket (POST /api/helpdesk)
               </h3>
               <button onClick={() => setIsRaiseTicketModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
@@ -1021,85 +989,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
                   type="submit"
                   className="px-5 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700"
                 >
-                  Submit Ticket
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ---------------------------------------------------------------- */}
-      {/* MODAL 5: SUBMIT EXPENSE CLAIM */}
-      {/* ---------------------------------------------------------------- */}
-      {isSubmitExpenseModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-[#1a2b3c] flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-amber-600" /> Submit Expense Claim (POST /expenses/me)
-              </h3>
-              <button onClick={() => setIsSubmitExpenseModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleExpenseSubmit} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Expense Category</label>
-                  <select
-                    value={expCategory}
-                    onChange={(e) => setExpCategory(e.target.value as any)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium"
-                  >
-                    <option value="Software Tool">Software License</option>
-                    <option value="Travel">Travel & Flight</option>
-                    <option value="Client Meeting">Client Dinner / Meeting</option>
-                    <option value="Office Supplies">Office Supplies</option>
-                    <option value="Medical">Medical Checkup</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Amount ($)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="150.00"
-                    value={expAmount}
-                    onChange={(e) => setExpAmount(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Expense Description</label>
-                <textarea
-                  rows={3}
-                  placeholder="Details of expense..."
-                  value={expDesc}
-                  onChange={(e) => setExpDesc(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium"
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsSubmitExpenseModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-amber-600 text-white font-bold rounded-xl hover:bg-amber-700"
-                >
-                  Submit Expense
+                  Submit Support Ticket
                 </button>
               </div>
             </form>

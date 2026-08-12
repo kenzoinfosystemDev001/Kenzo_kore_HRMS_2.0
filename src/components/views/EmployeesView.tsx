@@ -389,7 +389,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
 
               <div className="pt-2 border-t border-[#e2e8f0] flex items-center justify-between text-xs">
                 {isAdmin ? (
-                  <span className="font-bold text-[#1a2b3c]">${emp.salary ? emp.salary.toLocaleString() : '125,000'}/yr</span>
+                  <span className="font-bold text-[#1a2b3c]">₹{emp.salary ? emp.salary.toLocaleString() : '125,000'}/yr</span>
                 ) : (
                   <span className="font-semibold text-slate-500 flex items-center gap-1">
                     <Lock className="w-3 h-3 text-slate-400" /> Confidential Profile
@@ -595,7 +595,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Annual Salary ($)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Annual Salary (₹)</label>
                   <input
                     type="number"
                     value={newForm.salary}

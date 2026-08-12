@@ -294,7 +294,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                       </div>
 
                       <div>
-                        <label className="block font-bold text-slate-800 mb-1">Annual Salary ($)</label>
+                        <label className="block font-bold text-slate-800 mb-1">Annual Salary (₹)</label>
                         <input
                           type="number"
                           required
@@ -517,7 +517,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                   {isAdmin && (
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase">Annual Salary</span>
-                      <p className="font-bold text-emerald-700">${employee.salary?.toLocaleString()}/yr</p>
+                      <p className="font-bold text-emerald-700">₹{employee.salary?.toLocaleString()}/yr</p>
                     </div>
                   )}
                   <div>

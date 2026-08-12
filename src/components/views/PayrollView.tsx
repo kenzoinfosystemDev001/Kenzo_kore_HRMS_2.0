@@ -224,7 +224,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
           <span className="text-xs font-semibold text-slate-500 uppercase">
             {isAdmin ? 'Total Net Disbursement' : 'My Net Monthly Disbursement'}
           </span>
-          <p className="text-2xl font-bold text-[#1a2b3c] mt-1">${totalNet.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-[#1a2b3c] mt-1">₹{totalNet.toLocaleString()}</p>
           <p className="text-xs text-slate-500 mt-0.5">Bi-weekly pay period • Direct Deposit</p>
         </div>
 
@@ -232,7 +232,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
           <span className="text-xs font-semibold text-slate-500 uppercase">
             {isAdmin ? 'Tax & Health Withholdings' : 'My Tax & Health Deductions'}
           </span>
-          <p className="text-2xl font-bold text-[#1a2b3c] mt-1">${totalTaxes.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-[#1a2b3c] mt-1">₹{totalTaxes.toLocaleString()}</p>
           <p className="text-xs text-slate-500 mt-0.5">Federal, State & Medical insurance</p>
         </div>
 
@@ -240,7 +240,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
           <span className="text-xs font-semibold text-slate-500 uppercase">
             {isAdmin ? 'Performance Bonuses' : 'My Accrued Bonus'}
           </span>
-          <p className="text-2xl font-bold text-[#0060ac] mt-1">${totalBonuses.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-[#0060ac] mt-1">₹{totalBonuses.toLocaleString()}</p>
           <p className="text-xs text-slate-500 mt-0.5">Q2 Goal completions & incentives</p>
         </div>
 
@@ -329,19 +329,19 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
                   </td>
 
                   <td className="py-3 px-4 font-medium text-slate-700">
-                    ${p.baseSalary.toLocaleString()}
+                    ₹{p.baseSalary.toLocaleString()}
                   </td>
 
                   <td className="py-3 px-4 font-semibold text-emerald-600">
-                    +${p.bonus.toLocaleString()}
+                    +₹{p.bonus.toLocaleString()}
                   </td>
 
                   <td className="py-3 px-4 text-red-600 font-medium">
-                    -${(p.healthDeduction + p.taxDeduction).toLocaleString()}
+                    -₹{(p.healthDeduction + p.taxDeduction).toLocaleString()}
                   </td>
 
                   <td className="py-3 px-4 font-bold text-[#1a2b3c] text-sm">
-                    ${p.netPay.toLocaleString()}
+                    ₹{p.netPay.toLocaleString()}
                   </td>
 
                   <td className="py-3 px-4">
@@ -421,7 +421,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Base Salary ($)</label>
+                  <label className="font-bold text-slate-700 block mb-1">Base Salary (₹)</label>
                   <input
                     type="number"
                     required
@@ -432,7 +432,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Allowances & Bonuses ($)</label>
+                  <label className="font-bold text-slate-700 block mb-1">Allowances & Bonuses (₹)</label>
                   <input
                     type="number"
                     value={allowanceBonus}
@@ -442,7 +442,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Health Insurance ($)</label>
+                  <label className="font-bold text-slate-700 block mb-1">Health Insurance (₹)</label>
                   <input
                     type="number"
                     value={healthDeduction}
@@ -452,7 +452,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Tax Deductions ($)</label>
+                  <label className="font-bold text-slate-700 block mb-1">Tax Deductions (₹)</label>
                   <input
                     type="number"
                     value={taxDeduction}
@@ -476,7 +476,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
               <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex justify-between items-center text-xs font-bold">
                 <span className="text-[#1a2b3c]">Calculated Net Disbursement:</span>
                 <span className="text-emerald-700 text-sm">
-                  ${Math.max(0, baseSalary + allowanceBonus - (healthDeduction + taxDeduction)).toLocaleString()}
+                  ₹{Math.max(0, baseSalary + allowanceBonus - (healthDeduction + taxDeduction)).toLocaleString()}
                 </span>
               </div>
 
@@ -529,20 +529,20 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Base Salary:</span>
-                <span className="font-semibold text-slate-800">${mySingleRecord.baseSalary.toLocaleString()}</span>
+                <span className="font-semibold text-slate-800">₹{mySingleRecord.baseSalary.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Allowances & Bonus:</span>
-                <span className="font-semibold text-emerald-600">+${mySingleRecord.bonus.toLocaleString()}</span>
+                <span className="font-semibold text-emerald-600">+₹{mySingleRecord.bonus.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Tax & Medical Deductions:</span>
-                <span className="font-semibold text-red-600">-${(mySingleRecord.healthDeduction + mySingleRecord.taxDeduction).toLocaleString()}</span>
+                <span className="font-semibold text-red-600">-₹{(mySingleRecord.healthDeduction + mySingleRecord.taxDeduction).toLocaleString()}</span>
               </div>
 
               <div className="border-t border-slate-200 pt-2 flex justify-between items-center text-sm font-extrabold text-[#1a2b3c]">
                 <span>Net Salary Received:</span>
-                <span className="text-emerald-700 text-base">${mySingleRecord.netPay.toLocaleString()}</span>
+                <span className="text-emerald-700 text-base">₹{mySingleRecord.netPay.toLocaleString()}</span>
               </div>
             </div>
 
@@ -597,26 +597,26 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
               <h4 className="font-bold text-slate-700 uppercase text-[11px]">Gross Earnings & Allowances</h4>
               <div className="flex justify-between py-1 border-b border-slate-100">
                 <span>Base Gross Salary</span>
-                <span className="font-semibold">${selectedSlip.baseSalary.toLocaleString()}</span>
+                <span className="font-semibold">₹{selectedSlip.baseSalary.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
                 <span>Performance Bonus & Allowances</span>
-                <span className="font-semibold text-emerald-600">+${selectedSlip.bonus.toLocaleString()}</span>
+                <span className="font-semibold text-emerald-600">+₹{selectedSlip.bonus.toLocaleString()}</span>
               </div>
 
               <h4 className="font-bold text-slate-700 uppercase text-[11px] pt-2">Tax & Benefits Deductions</h4>
               <div className="flex justify-between py-1 border-b border-slate-100">
                 <span>Federal & State Taxes</span>
-                <span className="font-semibold text-red-600">-${selectedSlip.taxDeduction.toLocaleString()}</span>
+                <span className="font-semibold text-red-600">-₹{selectedSlip.taxDeduction.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
                 <span>Health Insurance Plan</span>
-                <span className="font-semibold text-red-600">-${selectedSlip.healthDeduction.toLocaleString()}</span>
+                <span className="font-semibold text-red-600">-₹{selectedSlip.healthDeduction.toLocaleString()}</span>
               </div>
 
               <div className="flex justify-between py-2 border-t-2 border-[#1a2b3c] font-bold text-sm text-[#1a2b3c] pt-3">
                 <span>Net Disbursement</span>
-                <span className="text-emerald-700">${selectedSlip.netPay.toLocaleString()}</span>
+                <span className="text-emerald-700">₹{selectedSlip.netPay.toLocaleString()}</span>
               </div>
             </div>
 

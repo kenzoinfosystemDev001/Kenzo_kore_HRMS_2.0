@@ -486,7 +486,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
             </div>
             <div className="mt-2 flex items-baseline justify-between">
               <span className="text-2xl font-extrabold text-[#1a2b3c]">
-                ${myPayroll ? myPayroll.netPay.toLocaleString() : ((currentUser?.salary || 125000) / 24 * 0.78).toFixed(0)}
+                ₹{myPayroll ? myPayroll.netPay.toLocaleString() : ((currentUser?.salary || 125000) / 24 * 0.78).toFixed(0)}
               </span>
               <span className="text-[10px] text-slate-400">Net Pay</span>
             </div>
@@ -868,23 +868,23 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
                 <div>
                   <p className="font-bold text-slate-700">Earnings</p>
                   <div className="space-y-1 mt-1 text-slate-600">
-                    <div className="flex justify-between"><span>Base Salary:</span> <span>${(currentUser?.salary ? currentUser.salary / 12 * 0.8 : 8000).toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span>Performance Bonus:</span> <span>$500.00</span></div>
+                    <div className="flex justify-between"><span>Base Salary:</span> <span>₹{(currentUser?.salary ? currentUser.salary / 12 * 0.8 : 8000).toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>Performance Bonus:</span> <span>₹500.00</span></div>
                   </div>
                 </div>
 
                 <div>
                   <p className="font-bold text-slate-700">Deductions</p>
                   <div className="space-y-1 mt-1 text-slate-600">
-                    <div className="flex justify-between"><span>Income Tax:</span> <span>$1,200.00</span></div>
-                    <div className="flex justify-between"><span>Health Insurance:</span> <span>$150.00</span></div>
+                    <div className="flex justify-between"><span>Income Tax:</span> <span>₹1,200.00</span></div>
+                    <div className="flex justify-between"><span>Health Insurance:</span> <span>₹150.00</span></div>
                   </div>
                 </div>
               </div>
 
               <div className="border-t border-slate-200 pt-2 flex justify-between items-center text-sm font-bold text-[#1a2b3c]">
                 <span>Net Payable Disbursed:</span>
-                <span className="text-emerald-700 text-base">${myPayroll ? myPayroll.netPay.toLocaleString() : '7,150.00'}</span>
+                <span className="text-emerald-700 text-base">₹{myPayroll ? myPayroll.netPay.toLocaleString() : '7,150.00'}</span>
               </div>
             </div>
 

@@ -111,7 +111,10 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     e.preventDefault();
     setSaving(true);
     try {
-      await onUpdateProfile(employee.id, form);
+      await onUpdateProfile(employee.id, {
+        ...form,
+        designation: form.role,
+      });
       setIsEditing(false);
       setSuccessMsg('Profile and access credentials updated successfully!');
       setTimeout(() => setSuccessMsg(null), 3000);

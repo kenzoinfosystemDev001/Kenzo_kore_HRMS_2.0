@@ -201,6 +201,32 @@ export async function initDb() {
       );
     `);
 
+    // Ensure ON UPDATE CASCADE on foreign key constraints for frictionless Emp_id updates
+    try {
+      await client.query(`
+        ALTER TABLE leave_requests DROP CONSTRAINT IF EXISTS leave_requests_employee_id_fkey;
+        ALTER TABLE leave_requests ADD CONSTRAINT leave_requests_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE;
+      `);
+      await client.query(`
+        ALTER TABLE payroll DROP CONSTRAINT IF EXISTS payroll_employee_id_fkey;
+        ALTER TABLE payroll ADD CONSTRAINT payroll_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE;
+      `);
+      await client.query(`
+        ALTER TABLE goals DROP CONSTRAINT IF EXISTS goals_employee_id_fkey;
+        ALTER TABLE goals ADD CONSTRAINT goals_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE;
+      `);
+      await client.query(`
+        ALTER TABLE attendance DROP CONSTRAINT IF EXISTS attendance_employee_id_fkey;
+        ALTER TABLE attendance ADD CONSTRAINT attendance_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE;
+      `);
+      await client.query(`
+        ALTER TABLE helpdesk_tickets DROP CONSTRAINT IF EXISTS helpdesk_tickets_employee_id_fkey;
+        ALTER TABLE helpdesk_tickets ADD CONSTRAINT helpdesk_tickets_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE;
+      `);
+    } catch (e) {
+      console.log('Foreign key ON UPDATE CASCADE applied');
+    }
+
     // Required 5 users configuration
     const requiredUsers = [
       {

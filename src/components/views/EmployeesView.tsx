@@ -139,6 +139,22 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
     }
   };
 
+  if (!isAdmin) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center shadow-2xs space-y-4 max-w-2xl mx-auto my-8">
+        <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
+          <Lock className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-[#1a2b3c]">Employee Directory Access Restricted</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+            The global employee roster, locations, and personnel profile actions are managed exclusively by HR Administration. You can view your personal profile, attendance, and leave records from your Employee Dashboard.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Filters & Actions Bar */}

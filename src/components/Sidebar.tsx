@@ -42,7 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { id: 'dashboard' as NavView, label: isAdmin ? 'Executive Overview' : 'Employee Overview', icon: LayoutDashboard },
-    { id: 'employees' as NavView, label: isAdmin ? 'Employee Directory' : 'Team Directory', icon: Users, badge: `${employeesCount}` },
+    ...(isAdmin ? [{ id: 'employees' as NavView, label: 'Employee Directory', icon: Users, badge: `${employeesCount}` }] : []),
     ...(isAdmin ? [{ id: 'onboarding' as NavView, label: 'Onboarding Pipeline', icon: UserPlus, badge: activeOnboardingCount > 0 ? `${activeOnboardingCount}` : undefined, badgeColor: 'bg-[#48bbbe] text-white' }] : []),
     { id: 'leave' as NavView, label: 'Leave & Attendance', icon: CalendarCheck, badge: (isAdmin && pendingLeavesCount > 0) ? `${pendingLeavesCount}` : undefined, badgeColor: 'bg-amber-500 text-white' },
     { id: 'payroll' as NavView, label: isAdmin ? 'Payroll & Benefits' : 'My Payroll', icon: DollarSign },

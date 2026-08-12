@@ -24,6 +24,15 @@ app.get('/api/health', (_req, res) => {
 
 // Helper: map DB user row to user profile object
 function mapUserRow(user: any) {
+  let formattedJoinDate = '2026-01-01';
+  if (user.join_date) {
+    try {
+      formattedJoinDate = new Date(user.join_date).toISOString().split('T')[0];
+    } catch {
+      formattedJoinDate = String(user.join_date).split('T')[0];
+    }
+  }
+
   return {
     id: user.id,
     name: user.name,
@@ -32,9 +41,9 @@ function mapUserRow(user: any) {
     department: user.department,
     designation: user.designation || user.role,
     status: user.status,
-    location: user.location,
-    joinDate: user.join_date,
-    salary: parseFloat(user.salary),
+    location: user.location || 'Delhi NCR (HQ)',
+    joinDate: formattedJoinDate,
+    salary: parseFloat(user.salary || 125000),
     phone: user.phone || '+91 99997 40587',
     emergencyPhone: user.emergency_phone || '+91 98110 00000',
     address: user.address || 'Kenzo - 32-C, UNIT NO. 107, B.R. COMPLEX, MAYUR VIHAR PHASE I, EAST DELHI - 110091',
@@ -88,12 +97,12 @@ app.post('/api/auth/login', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Login error:', error);
-    res.status(500).json({ error: error?.message || 'Authentication error' });
+    res.status(500).json({ error: 'Failed to authenticate user' });
   }
 });
 
 // ----------------------------------------------------
-// EMPLOYEES ENDPOINTS
+// EMPLOYEES ENDPOINTS (PostgreSQL Persisted)
 // ----------------------------------------------------
 
 app.get('/api/employees', async (_req, res) => {
@@ -123,7 +132,7 @@ app.post('/api/employees', async (req, res) => {
     const newId = empId && empId.trim() ? empId.trim() : `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
     const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0060ac&color=fff&bold=true`;
     const sysRole = userRole === 'Admin' ? 'Admin' : 'Employee';
-    const finalJoinDate = joinDate || new Date().toISOString().split('T')[0];
+    const finalJoinDate = (joinDate && joinDate.trim()) ? joinDate.trim() : new Date().toISOString().split('T')[0];
 
     await pool.query(
       `INSERT INTO users (
@@ -156,16 +165,44 @@ app.put('/api/employees/:id/profile', async (req, res) => {
     const { 
       newEmpId, name, phone, emergencyPhone, address, maritalStatus, nomineeName, nomineeDob,
       nomineeRelation, highestQualification, medicalHistory, scoreCard, salary, department, designation, role,
-      location, joinDate, newPassword 
+      userRole, location, joinDate, newPassword 
     } = req.body;
 
+    const targetId = id.trim();
+    const nextId = (newEmpId && newEmpId.trim()) ? newEmpId.trim() : targetId;
     const finalRole = designation || role;
-    const targetId = id;
+    const sysRole = (userRole === 'Admin' || userRole === 'Employee') ? userRole : null;
 
-    // Check if new password is requested
+    // Sanitize values (convert empty strings to null so COALESCE keeps existing DB values)
+    const sName = (name && name.trim()) ? name.trim() : null;
+    const sPhone = (phone && phone.trim()) ? phone.trim() : null;
+    const sEmerg = (emergencyPhone && emergencyPhone.trim()) ? emergencyPhone.trim() : null;
+    const sAddr = (address && address.trim()) ? address.trim() : null;
+    const sMarital = (maritalStatus && maritalStatus.trim()) ? maritalStatus.trim() : null;
+    const sNomName = (nomineeName && nomineeName.trim()) ? nomineeName.trim() : null;
+    const sNomDob = (nomineeDob && nomineeDob.trim()) ? nomineeDob.trim() : null;
+    const sNomRel = (nomineeRelation && nomineeRelation.trim()) ? nomineeRelation.trim() : null;
+    const sQual = (highestQualification && highestQualification.trim()) ? highestQualification.trim() : null;
+    const sMed = (medicalHistory && medicalHistory.trim()) ? medicalHistory.trim() : null;
+    const sScore = (scoreCard !== undefined && scoreCard !== null && scoreCard !== '') ? Number(scoreCard) : null;
+    const sSalary = (salary !== undefined && salary !== null && salary !== '') ? Number(salary) : null;
+    const sDept = (department && department.trim()) ? department.trim() : null;
+    const sDesig = (finalRole && finalRole.trim()) ? finalRole.trim() : null;
+    const sLoc = (location && location.trim()) ? location.trim() : null;
+    const sJoinDate = (joinDate && joinDate.trim()) ? joinDate.trim() : null;
+
     let passwordHashToSet = null;
     if (newPassword && newPassword.trim().length > 0) {
       passwordHashToSet = await bcrypt.hash(newPassword.trim(), 10);
+    }
+
+    // If Employee ID is changed, update foreign keys in child tables
+    if (nextId !== targetId) {
+      await pool.query('UPDATE leave_requests SET employee_id = $1 WHERE employee_id = $2', [nextId, targetId]);
+      await pool.query('UPDATE payroll SET employee_id = $1 WHERE employee_id = $2', [nextId, targetId]);
+      await pool.query('UPDATE goals SET employee_id = $1 WHERE employee_id = $2', [nextId, targetId]);
+      await pool.query('UPDATE attendance SET employee_id = $1 WHERE employee_id = $2', [nextId, targetId]);
+      await pool.query('UPDATE helpdesk_tickets SET employee_id = $1 WHERE employee_id = $2', [nextId, targetId]);
     }
 
     await pool.query(
@@ -186,18 +223,26 @@ app.put('/api/employees/:id/profile', async (req, res) => {
         department = COALESCE($14, department),
         designation = COALESCE($15, designation),
         location = COALESCE($16, location),
-        join_date = COALESCE($17, join_date),
-        password_hash = CASE WHEN $18::text IS NOT NULL THEN $18::text ELSE password_hash END
-       WHERE id = $19`,
+        join_date = COALESCE($17::date, join_date),
+        role = COALESCE($18, role),
+        password_hash = CASE WHEN $19::text IS NOT NULL THEN $19::text ELSE password_hash END
+       WHERE id = $20`,
       [
-        newEmpId || targetId, name, phone, emergencyPhone, address, maritalStatus, nomineeName, nomineeDob,
-        nomineeRelation, highestQualification, medicalHistory, scoreCard, salary, department, finalRole,
-        location, joinDate, passwordHashToSet, targetId
+        nextId, sName, sPhone, sEmerg, sAddr, sMarital, sNomName, sNomDob,
+        sNomRel, sQual, sMed, sScore, sSalary, sDept, sDesig,
+        sLoc, sJoinDate, sysRole, passwordHashToSet, targetId
       ]
     );
 
-    const checkId = newEmpId || targetId;
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [checkId]);
+    if (sName) {
+      await pool.query('UPDATE leave_requests SET employee_name = $1 WHERE employee_id = $2', [sName, nextId]);
+      await pool.query('UPDATE payroll SET employee_name = $1 WHERE employee_id = $2', [sName, nextId]);
+      await pool.query('UPDATE goals SET employee_name = $1 WHERE employee_id = $2', [sName, nextId]);
+      await pool.query('UPDATE attendance SET employee_name = $1 WHERE employee_id = $2', [sName, nextId]);
+      await pool.query('UPDATE helpdesk_tickets SET employee_name = $1 WHERE employee_id = $2', [sName, nextId]);
+    }
+
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [nextId]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Employee not found' });
     }
@@ -205,7 +250,7 @@ app.put('/api/employees/:id/profile', async (req, res) => {
     res.json(mapUserRow(result.rows[0]));
   } catch (error: any) {
     console.error('Update employee profile error:', error);
-    res.status(500).json({ error: 'Failed to update employee profile' });
+    res.status(500).json({ error: error?.message || 'Failed to update employee profile' });
   }
 });
 

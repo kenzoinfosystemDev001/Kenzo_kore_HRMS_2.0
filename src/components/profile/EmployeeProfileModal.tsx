@@ -50,6 +50,17 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  const formatDateForInput = (dateVal?: string | null) => {
+    if (!dateVal) return '2026-01-01';
+    try {
+      const d = new Date(dateVal);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().split('T')[0];
+      }
+    } catch {}
+    return String(dateVal).split('T')[0] || '2026-01-01';
+  };
+
   // Profile Form State
   const [form, setForm] = useState({
     newEmpId: employee.id || 'EMP-1001',
@@ -69,7 +80,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     department: employee.department || 'Engineering',
     role: employee.role || 'Software Engineer',
     location: employee.location || 'Delhi NCR (HQ)',
-    joinDate: employee.joinDate || '2026-01-01',
+    joinDate: formatDateForInput(employee.joinDate),
     newPassword: '',
   });
 

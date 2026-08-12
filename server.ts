@@ -110,7 +110,7 @@ app.get('/api/employees', async (_req, res) => {
 app.post('/api/employees', async (req, res) => {
   try {
     const { 
-      name, email, role, department, status, location, salary, phone, emergencyPhone,
+      empId, name, email, role, department, status, location, salary, joinDate, phone, emergencyPhone,
       address, maritalStatus, nomineeName, nomineeDob, nomineeRelation, highestQualification,
       medicalHistory, scoreCard, manager, userRole 
     } = req.body;
@@ -120,19 +120,20 @@ app.post('/api/employees', async (req, res) => {
     }
 
     const defaultPasswordHash = await bcrypt.hash('kenzo123', 10);
-    const newId = `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newId = empId && empId.trim() ? empId.trim() : `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
     const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0060ac&color=fff&bold=true`;
     const sysRole = userRole === 'Admin' ? 'Admin' : 'Employee';
+    const finalJoinDate = joinDate || new Date().toISOString().split('T')[0];
 
     await pool.query(
       `INSERT INTO users (
-        id, name, email, password_hash, role, department, designation, status, location, salary, phone,
+        id, name, email, password_hash, role, department, designation, status, location, salary, join_date, phone,
         emergency_phone, address, marital_status, nominee_name, nominee_dob, nominee_relation,
         highest_qualification, medical_history, score_card, manager, avatar, documents
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
       [
         newId, name, email, defaultPasswordHash, sysRole, department || 'Engineering', role || 'Software Engineer',
-        status || 'Active', location || 'Delhi NCR (HQ)', salary || 125000, phone || '+91 99997 40587',
+        status || 'Active', location || 'Delhi NCR (HQ)', salary || 125000, finalJoinDate, phone || '+91 99997 40587',
         emergencyPhone || '+91 98110 00000', address || 'Kenzo - 32-C, UNIT NO. 107, B.R. COMPLEX, MAYUR VIHAR PHASE I, EAST DELHI - 110091',
         maritalStatus || 'Single', nomineeName || 'Parent / Spouse', nomineeDob || '1995-05-15', nomineeRelation || 'Parent',
         highestQualification || 'Bachelor of Technology (B.Tech)', medicalHistory || 'No major pre-existing conditions reported.',
@@ -144,7 +145,7 @@ app.post('/api/employees', async (req, res) => {
     res.status(201).json(mapUserRow(result.rows[0]));
   } catch (error: any) {
     console.error('Create employee error:', error);
-    res.status(500).json({ error: error?.message || 'Failed to create employee' });
+    res.status(500).json({ error: 'Failed to create employee profile' });
   }
 });
 
@@ -153,34 +154,50 @@ app.put('/api/employees/:id/profile', async (req, res) => {
   try {
     const { id } = req.params;
     const { 
-      name, phone, emergencyPhone, address, maritalStatus, nomineeName, nomineeDob,
-      nomineeRelation, highestQualification, medicalHistory, scoreCard, salary, department, designation 
+      newEmpId, name, phone, emergencyPhone, address, maritalStatus, nomineeName, nomineeDob,
+      nomineeRelation, highestQualification, medicalHistory, scoreCard, salary, department, designation, role,
+      location, joinDate, newPassword 
     } = req.body;
+
+    const finalRole = designation || role;
+    const targetId = id;
+
+    // Check if new password is requested
+    let passwordHashToSet = null;
+    if (newPassword && newPassword.trim().length > 0) {
+      passwordHashToSet = await bcrypt.hash(newPassword.trim(), 10);
+    }
 
     await pool.query(
       `UPDATE users SET 
-        name = COALESCE($1, name),
-        phone = COALESCE($2, phone),
-        emergency_phone = COALESCE($3, emergency_phone),
-        address = COALESCE($4, address),
-        marital_status = COALESCE($5, marital_status),
-        nominee_name = COALESCE($6, nominee_name),
-        nominee_dob = COALESCE($7, nominee_dob),
-        nominee_relation = COALESCE($8, nominee_relation),
-        highest_qualification = COALESCE($9, highest_qualification),
-        medical_history = COALESCE($10, medical_history),
-        score_card = COALESCE($11, score_card),
-        salary = COALESCE($12, salary),
-        department = COALESCE($13, department),
-        designation = COALESCE($14, designation)
-       WHERE id = $15`,
+        id = COALESCE($1, id),
+        name = COALESCE($2, name),
+        phone = COALESCE($3, phone),
+        emergency_phone = COALESCE($4, emergency_phone),
+        address = COALESCE($5, address),
+        marital_status = COALESCE($6, marital_status),
+        nominee_name = COALESCE($7, nominee_name),
+        nominee_dob = COALESCE($8, nominee_dob),
+        nominee_relation = COALESCE($9, nominee_relation),
+        highest_qualification = COALESCE($10, highest_qualification),
+        medical_history = COALESCE($11, medical_history),
+        score_card = COALESCE($12, score_card),
+        salary = COALESCE($13, salary),
+        department = COALESCE($14, department),
+        designation = COALESCE($15, designation),
+        location = COALESCE($16, location),
+        join_date = COALESCE($17, join_date),
+        password_hash = CASE WHEN $18::text IS NOT NULL THEN $18::text ELSE password_hash END
+       WHERE id = $19`,
       [
-        name, phone, emergencyPhone, address, maritalStatus, nomineeName, nomineeDob,
-        nomineeRelation, highestQualification, medicalHistory, scoreCard, salary, department, designation, id
+        newEmpId || targetId, name, phone, emergencyPhone, address, maritalStatus, nomineeName, nomineeDob,
+        nomineeRelation, highestQualification, medicalHistory, scoreCard, salary, department, finalRole,
+        location, joinDate, passwordHashToSet, targetId
       ]
     );
 
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+    const checkId = newEmpId || targetId;
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [checkId]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Employee not found' });
     }

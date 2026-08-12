@@ -12,7 +12,9 @@ import {
   Trash2,
   AlertTriangle,
   X,
-  Lock
+  Lock,
+  Calendar,
+  CalendarCheck
 } from 'lucide-react';
 import { Employee, Department, EmploymentStatus, UserAccount, EmployeeDocument } from '../../types';
 import { EmployeeProfileModal } from '../profile/EmployeeProfileModal';
@@ -21,8 +23,8 @@ interface EmployeesViewProps {
   employees: Employee[];
   searchQuery: string;
   onSearchChange: (q: string) => void;
-  onAddEmployee: (employeeData: Partial<Employee>) => void;
-  onUpdateEmployeeProfile: (id: string, updatedData: Partial<Employee>) => void;
+  onAddEmployee: (employeeData: Partial<Employee> & { empId?: string }) => void;
+  onUpdateEmployeeProfile: (id: string, updatedData: Partial<Employee> & { newEmpId?: string; newPassword?: string }) => void;
   onUpdateEmployeeDocuments?: (id: string, docs: EmployeeDocument[]) => void;
   onDeleteEmployee: (id: string) => void;
   currentUser: UserAccount | null;
@@ -48,6 +50,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
 
   // New Employee Form State
   const [newForm, setNewForm] = useState({
+    empId: '',
     name: '',
     email: '',
     role: '',
@@ -55,6 +58,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
     status: 'Active' as EmploymentStatus,
     location: 'Delhi NCR (HQ)',
     salary: 125000,
+    joinDate: new Date().toISOString().split('T')[0],
     phone: '+91 99997 40587',
     emergencyPhone: '+91 98110 00000',
     address: 'Kenzo - 32-C, UNIT NO. 107, B.R. COMPLEX, MAYUR VIHAR PHASE I, EAST DELHI - 110091',
@@ -90,6 +94,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
     onAddEmployee(newForm);
     setIsAddModalOpen(false);
     setNewForm({
+      empId: '',
       name: '',
       email: '',
       role: '',
@@ -97,6 +102,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
       status: 'Active',
       location: 'Delhi NCR (HQ)',
       salary: 125000,
+      joinDate: new Date().toISOString().split('T')[0],
       phone: '+91 99997 40587',
       emergencyPhone: '+91 98110 00000',
       address: 'Kenzo - 32-C, UNIT NO. 107, B.R. COMPLEX, MAYUR VIHAR PHASE I, EAST DELHI - 110091',
@@ -261,7 +267,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                   <th className="py-3 px-4">Role & Dept</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Location</th>
-                  {/* Point 1: Hide Annual Compensation column for non-admin employees! */}
+                  <th className="py-3 px-4">Date of Joining</th>
                   {isAdmin && <th className="py-3 px-4">Annual Compensation</th>}
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
@@ -282,7 +288,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                         />
                         <div>
                           <p className="font-bold text-[#1a2b3c] hover:text-[#0060ac] transition-colors">{emp.name}</p>
-                          <p className="text-[11px] text-slate-400">{emp.id} • {emp.email}</p>
+                          <p className="text-[11px] text-slate-400 font-mono">{emp.id} • {emp.email}</p>
                         </div>
                       </div>
                     </td>
@@ -297,13 +303,16 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                     </td>
 
                     <td className="py-3 px-4 text-slate-600 font-medium">
-                      {emp.location}
+                      {emp.location || 'Delhi NCR (HQ)'}
                     </td>
 
-                    {/* Point 1: Hide salary for non-admins */}
+                    <td className="py-3 px-4 font-semibold text-slate-700">
+                      {emp.joinDate || '2026-01-01'}
+                    </td>
+
                     {isAdmin && (
                       <td className="py-3 px-4 font-bold text-[#1a2b3c]">
-                        ${emp.salary.toLocaleString()}/yr
+                        ${emp.salary ? emp.salary.toLocaleString() : '125,000'}/yr
                       </td>
                     )}
 
@@ -365,7 +374,11 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{emp.location}</span>
+                    <span className="truncate">{emp.location || 'Delhi NCR (HQ)'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CalendarCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">Joined: {emp.joinDate || '2026-01-01'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -376,7 +389,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
 
               <div className="pt-2 border-t border-[#e2e8f0] flex items-center justify-between text-xs">
                 {isAdmin ? (
-                  <span className="font-bold text-[#1a2b3c]">${emp.salary.toLocaleString()}/yr</span>
+                  <span className="font-bold text-[#1a2b3c]">${emp.salary ? emp.salary.toLocaleString() : '125,000'}/yr</span>
                 ) : (
                   <span className="font-semibold text-slate-500 flex items-center gap-1">
                     <Lock className="w-3 h-3 text-slate-400" /> Confidential Profile
@@ -456,8 +469,8 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
       {/* Add Employee Modal Form (Admin Only) */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl border border-[#e2e8f0] w-full max-w-lg shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-5 border-b border-[#e2e8f0] flex items-center justify-between bg-slate-50/50">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] w-full max-w-lg shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="p-5 border-b border-[#e2e8f0] flex items-center justify-between bg-slate-50/50 sticky top-0 bg-white z-10">
               <h3 className="text-base font-bold text-[#1a2b3c]">Add New Employee Profile</h3>
               <button 
                 onClick={() => setIsAddModalOpen(false)}
@@ -469,6 +482,28 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
 
             <form onSubmit={handleCreateEmployee} className="p-5 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Employee ID (Emp_id)</label>
+                  <input
+                    type="text"
+                    placeholder="Auto or e.g. EMP-1006"
+                    value={newForm.empId}
+                    onChange={(e) => setNewForm({ ...newForm, empId: e.target.value })}
+                    className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg font-mono focus:outline-none focus:border-[#0060ac]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Date of Joining</label>
+                  <input
+                    type="date"
+                    required
+                    value={newForm.joinDate}
+                    onChange={(e) => setNewForm({ ...newForm, joinDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg focus:outline-none focus:border-[#0060ac]"
+                  />
+                </div>
+
                 <div className="col-span-2">
                   <label className="block font-semibold text-slate-700 mb-1">Full Name</label>
                   <input
@@ -522,6 +557,18 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                 </div>
 
                 <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Work Location</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Delhi NCR (HQ) or San Francisco"
+                    value={newForm.location}
+                    onChange={(e) => setNewForm({ ...newForm, location: e.target.value })}
+                    className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg focus:outline-none focus:border-[#0060ac]"
+                  />
+                </div>
+
+                <div>
                   <label className="block font-semibold text-slate-700 mb-1">System Role Access</label>
                   <select
                     value={newForm.userRole}
@@ -558,7 +605,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                 </div>
 
                 <div className="col-span-2">
-                  <span className="text-[11px] text-slate-500 font-medium">Default password will be hashed as <code className="text-[#0060ac] font-bold">kenzo123</code>.</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Default password will be hashed as <code className="text-[#0060ac] font-bold">kenzo123</code>. Admin can reset it anytime.</span>
                 </div>
               </div>
 

@@ -17,7 +17,12 @@ import {
   Clock, 
   Save, 
   ShieldCheck,
-  Edit3
+  Edit3,
+  Key,
+  Calendar,
+  Building,
+  DollarSign,
+  Briefcase
 } from 'lucide-react';
 import { Employee, EmployeeDocument, UserAccount } from '../../types';
 
@@ -25,7 +30,7 @@ interface EmployeeProfileModalProps {
   employee: Employee;
   currentUser: UserAccount | null;
   onClose: () => void;
-  onUpdateProfile: (id: string, updatedData: Partial<Employee>) => void;
+  onUpdateProfile: (id: string, updatedData: Partial<Employee> & { newEmpId?: string; newPassword?: string }) => void;
   onUpdateDocuments?: (id: string, updatedDocs: EmployeeDocument[]) => void;
 }
 
@@ -47,6 +52,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
 
   // Profile Form State
   const [form, setForm] = useState({
+    newEmpId: employee.id || 'EMP-1001',
     name: employee.name || '',
     phone: employee.phone || '',
     email: employee.email || '',
@@ -62,6 +68,9 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     salary: employee.salary || 125000,
     department: employee.department || 'Engineering',
     role: employee.role || 'Software Engineer',
+    location: employee.location || 'Delhi NCR (HQ)',
+    joinDate: employee.joinDate || '2026-01-01',
+    newPassword: '',
   });
 
   // Document Vault State
@@ -78,7 +87,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
           { id: 'doc-7', name: 'Graduation Mark Sheets (all years/semesters)', isMandatory: false, status: 'Pending' },
           { id: 'doc-8', name: 'Graduation Degree Certificate (if available)', isMandatory: false, status: 'Pending' },
           { id: 'doc-9', name: 'Two recent passport-size photographs', isMandatory: false, status: 'Pending' },
-          { id: 'doc-[#10]', name: 'Cancelled Cheque (or first page of bank passbook)', isMandatory: false, status: 'Pending' },
+          { id: 'doc-10', name: 'Cancelled Cheque (or first page of bank passbook)', isMandatory: false, status: 'Pending' },
           { id: 'doc-11', name: 'Offer Letter(s) from previous employer(s)', isMandatory: false, status: 'Pending' },
           { id: 'doc-12', name: 'Experience Letter(s) from previous employer(s)', isMandatory: false, status: 'Pending' },
           { id: 'doc-13', name: 'Relieving Letter from previous employer', isMandatory: false, status: 'Pending' },
@@ -93,7 +102,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     try {
       await onUpdateProfile(employee.id, form);
       setIsEditing(false);
-      setSuccessMsg('Profile updated successfully!');
+      setSuccessMsg('Profile and access credentials updated successfully!');
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       console.error('Error saving profile:', err);
@@ -152,7 +161,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                   {employee.role}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">{employee.id} • {employee.department} • Joined {employee.joinDate}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{employee.id} • {employee.department} • Joined {employee.joinDate || '2026-01-01'}</p>
             </div>
           </div>
 
@@ -163,7 +172,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                 className="px-3 py-1.5 bg-[#0060ac] text-white font-bold text-xs rounded-xl shadow-2xs hover:bg-[#004e8c] flex items-center gap-1.5 transition-all"
               >
                 <Edit3 className="w-3.5 h-3.5" />
-                <span>Edit Profile</span>
+                <span>Edit Profile & Access</span>
               </button>
             )}
             <button 
@@ -210,8 +219,112 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs text-slate-700">
           {activeTab === 'details' ? (
             isEditing ? (
-              /* Editable Profile Form */
+              /* Editable Profile & Administrative Control Form */
               <form onSubmit={handleSaveProfile} className="space-y-4">
+                
+                {/* ADMIN EXCLUSIVE CONTROLS SECTION */}
+                {isAdmin && (
+                  <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-200 space-y-3">
+                    <h4 className="font-bold text-xs text-amber-900 flex items-center gap-1.5 uppercase tracking-wider">
+                      <ShieldCheck className="w-4 h-4 text-amber-700" /> HR Admin Governance Controls (Restricted)
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Employee ID (Emp_id)</label>
+                        <input
+                          type="text"
+                          required
+                          value={form.newEmpId}
+                          onChange={(e) => setForm({ ...form, newEmpId: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-amber-300 rounded-lg font-mono font-bold text-[#1a2b3c] focus:outline-none focus:border-[#0060ac]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Role / Job Designation</label>
+                        <input
+                          type="text"
+                          required
+                          value={form.role}
+                          onChange={(e) => setForm({ ...form, role: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-amber-300 rounded-lg font-bold text-[#1a2b3c] focus:outline-none focus:border-[#0060ac]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Department</label>
+                        <select
+                          value={form.department}
+                          onChange={(e) => setForm({ ...form, department: e.target.value as any })}
+                          className="w-full p-2.5 bg-white border border-amber-300 rounded-lg font-bold text-[#1a2b3c] focus:outline-none focus:border-[#0060ac]"
+                        >
+                          <option value="Engineering">Engineering</option>
+                          <option value="Product & Design">Product & Design</option>
+                          <option value="Human Resources">Human Resources</option>
+                          <option value="Sales & Marketing">Sales & Marketing</option>
+                          <option value="Finance">Finance</option>
+                          <option value="Operations">Operations</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Work Location</label>
+                        <input
+                          type="text"
+                          required
+                          value={form.location}
+                          onChange={(e) => setForm({ ...form, location: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-amber-300 rounded-lg font-semibold text-[#1a2b3c] focus:outline-none focus:border-[#0060ac]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Annual Salary ($)</label>
+                        <input
+                          type="number"
+                          required
+                          value={form.salary}
+                          onChange={(e) => setForm({ ...form, salary: Number(e.target.value) })}
+                          className="w-full p-2.5 bg-white border border-amber-300 rounded-lg font-bold text-[#1a2b3c] focus:outline-none focus:border-[#0060ac]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Date of Joining</label>
+                        <input
+                          type="date"
+                          required
+                          value={form.joinDate}
+                          onChange={(e) => setForm({ ...form, joinDate: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-amber-300 rounded-lg font-semibold text-[#1a2b3c] focus:outline-none focus:border-[#0060ac]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* LOGIN PASSWORD RESET SECTION */}
+                <div className="bg-blue-50/70 p-4 rounded-xl border border-blue-200 space-y-2">
+                  <h4 className="font-bold text-xs text-[#0060ac] flex items-center gap-1.5 uppercase tracking-wider">
+                    <Key className="w-4 h-4 text-[#0060ac]" /> 
+                    {isAdmin ? `Reset Login Password for ${employee.name}` : `Change My Login Password`}
+                  </h4>
+                  <div className="max-w-md">
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      New Password {isAdmin ? '(Admin override)' : '(Minimum 6 characters)'}
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Leave blank to keep existing password"
+                      value={form.newPassword}
+                      onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-blue-300 rounded-lg text-slate-900 focus:outline-none focus:border-[#0060ac]"
+                    />
+                  </div>
+                </div>
+
+                {/* GENERAL PROFILE DETAILS FORM */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <div className="sm:col-span-2">
                     <label className="block font-bold text-slate-800 mb-1">Full Name</label>
@@ -231,7 +344,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                       disabled={!isAdmin}
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-lg text-slate-600"
+                      className="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-lg text-slate-600 font-medium"
                     />
                   </div>
 
@@ -363,11 +476,36 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
             ) : (
               /* Read-Only Profile Overview */
               <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#1a2b3c] text-white p-4 rounded-xl shadow-xs">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Employee ID</span>
+                    <p className="font-extrabold text-sm text-cyan-300 font-mono">{employee.id}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Role & Department</span>
+                    <p className="font-bold text-xs">{employee.role} ({employee.department})</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Date of Joining</span>
+                    <p className="font-bold text-xs text-amber-300">{employee.joinDate || '2026-01-01'}</p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase">Work Email</span>
                     <p className="font-bold text-slate-900">{employee.email}</p>
                   </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Work Location</span>
+                    <p className="font-bold text-slate-900">{employee.location || 'Delhi NCR (HQ)'}</p>
+                  </div>
+                  {isAdmin && (
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Annual Salary</span>
+                      <p className="font-bold text-emerald-700">${employee.salary?.toLocaleString()}/yr</p>
+                    </div>
+                  )}
                   <div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase">Phone Number</span>
                     <p className="font-bold text-slate-900">{employee.phone || '+91 99997 40587'}</p>

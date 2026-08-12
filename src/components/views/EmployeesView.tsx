@@ -11,7 +11,8 @@ import {
   Building2, 
   Trash2,
   AlertTriangle,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { Employee, Department, EmploymentStatus, UserAccount, EmployeeDocument } from '../../types';
 import { EmployeeProfileModal } from '../profile/EmployeeProfileModal';
@@ -244,7 +245,8 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                   <th className="py-3 px-4">Role & Dept</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Location</th>
-                  <th className="py-3 px-4">Annual Compensation</th>
+                  {/* Point 1: Hide Annual Compensation column for non-admin employees! */}
+                  {isAdmin && <th className="py-3 px-4">Annual Compensation</th>}
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -282,9 +284,12 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                       {emp.location}
                     </td>
 
-                    <td className="py-3 px-4 font-bold text-[#1a2b3c]">
-                      ${emp.salary.toLocaleString()}/yr
-                    </td>
+                    {/* Point 1: Hide salary for non-admins */}
+                    {isAdmin && (
+                      <td className="py-3 px-4 font-bold text-[#1a2b3c]">
+                        ${emp.salary.toLocaleString()}/yr
+                      </td>
+                    )}
 
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
@@ -354,7 +359,13 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
               </div>
 
               <div className="pt-2 border-t border-[#e2e8f0] flex items-center justify-between text-xs">
-                <span className="font-bold text-[#1a2b3c]">${emp.salary.toLocaleString()}/yr</span>
+                {isAdmin ? (
+                  <span className="font-bold text-[#1a2b3c]">${emp.salary.toLocaleString()}/yr</span>
+                ) : (
+                  <span className="font-semibold text-slate-500 flex items-center gap-1">
+                    <Lock className="w-3 h-3 text-slate-400" /> Confidential Profile
+                  </span>
+                )}
                 <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <span className="text-[11px] font-semibold text-[#0060ac] hover:underline" onClick={() => setSelectedEmployee(emp)}>
                     Profile & Docs &rarr;

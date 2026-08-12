@@ -188,7 +188,7 @@ export default function App() {
 
   const handleApproveLeave = async (id: string, note?: string) => {
     try {
-      const res = await fetch(`/api/leaves/${id}`, {
+      await fetch(`/api/leaves/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Approved', approverNote: note || `Approved by ${currentUser?.name}` }),
@@ -452,15 +452,19 @@ export default function App() {
             <LeaveView
               leaveRequests={leaveRequests}
               employees={employees}
+              attendanceRecords={attendanceRecords}
+              currentUser={currentUser}
               onApproveLeave={handleApproveLeave}
               onRejectLeave={handleRejectLeave}
               onRequestLeave={handleRequestLeave}
+              onRequestCorrection={handleRequestCorrection}
             />
           )}
 
           {currentView === 'payroll' && (
             <PayrollView
               payroll={payroll}
+              currentUser={currentUser}
               onUpdatePayrollStatus={handleUpdatePayrollStatus}
               onRunPayrollBatch={handleRunPayrollBatch}
             />

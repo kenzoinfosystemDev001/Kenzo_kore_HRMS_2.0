@@ -42,6 +42,8 @@ interface DashboardViewProps {
   onSubmitTicket: (newTck: SupportTicket) => void;
   onUpdateEmployeeProfile?: (id: string, updatedData: Partial<Employee>) => void;
   onUpdateEmployeeDocuments?: (id: string, docs: EmployeeDocument[]) => void;
+  onClockIn?: (employeeId: string, employeeName: string) => void;
+  onClockOut?: (employeeId: string) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = (props) => {
@@ -88,6 +90,8 @@ export const DashboardView: React.FC<DashboardViewProps> = (props) => {
       onSubmitTicket={props.onSubmitTicket}
       onUpdateEmployeeProfile={props.onUpdateEmployeeProfile}
       onUpdateEmployeeDocuments={props.onUpdateEmployeeDocuments}
+      onClockIn={props.onClockIn}
+      onClockOut={props.onClockOut}
     />
   );
 };

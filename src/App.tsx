@@ -40,7 +40,16 @@ import {
 } from './data/hrmsArchitectureData';
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  // Session Persistence: restore user from localStorage on refresh!
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    try {
+      const stored = localStorage.getItem('kenzo_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [currentView, setCurrentView] = useState<NavView>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -63,11 +72,20 @@ export default function App() {
 
   const [loadingData, setLoadingData] = useState(false);
 
+  // Helper to update user state & localStorage
+  const handleSetUser = (user: UserAccount | null) => {
+    setCurrentUser(user);
+    if (user) {
+      localStorage.setItem('kenzo_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('kenzo_user');
+    }
+  };
+
   // Load state from backend API when logged in
   const fetchAllData = async () => {
-    setLoadingData(true);
     try {
-      const [empRes, leaveRes, payRes, candRes, goalRes, actRes, tckRes] = await Promise.all([
+      const [empRes, leaveRes, payRes, candRes, goalRes, actRes, tckRes, attRes] = await Promise.all([
         fetch('/api/employees'),
         fetch('/api/leaves'),
         fetch('/api/payroll'),
@@ -75,27 +93,76 @@ export default function App() {
         fetch('/api/goals'),
         fetch('/api/activities'),
         fetch('/api/helpdesk'),
+        fetch('/api/attendance'),
       ]);
 
-      if (empRes.ok) setEmployees(await empRes.json());
+      if (empRes.ok) {
+        const fetchedEmps = await empRes.json();
+        setEmployees(fetchedEmps);
+        // If current user is logged in, refresh their profile object
+        if (currentUser) {
+          const match = fetchedEmps.find((e: Employee) => e.id === currentUser.id || e.email.toLowerCase() === currentUser.email.toLowerCase());
+          if (match) {
+            handleSetUser(match);
+          }
+        }
+      }
       if (leaveRes.ok) setLeaveRequests(await leaveRes.json());
       if (payRes.ok) setPayroll(await payRes.json());
       if (candRes.ok) setCandidates(await candRes.json());
       if (goalRes.ok) setGoals(await goalRes.json());
       if (actRes.ok) setActivities(await actRes.json());
       if (tckRes.ok) setSupportTickets(await tckRes.json());
+      if (attRes.ok) setAttendanceRecords(await attRes.json());
     } catch (error) {
       console.error('Error loading HRMS data from backend:', error);
-    } finally {
-      setLoadingData(false);
     }
   };
 
   useEffect(() => {
     if (currentUser) {
       fetchAllData();
+      // Real-time polling every 5 seconds so Admin & Employees see live updates instantly!
+      const interval = setInterval(() => {
+        fetchAllData();
+      }, 5000);
+      return () => clearInterval(interval);
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
+
+  // Handlers - Clock In / Clock Out
+  const handleClockIn = async (employeeId: string, employeeName: string) => {
+    try {
+      const res = await fetch('/api/attendance/clock-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeId, employeeName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Clock-in failed');
+        return;
+      }
+      fetchAllData();
+    } catch (error) {
+      console.error('Clock in error:', error);
+    }
+  };
+
+  const handleClockOut = async (employeeId: string) => {
+    try {
+      const res = await fetch('/api/attendance/clock-out', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeId }),
+      });
+      if (res.ok) {
+        fetchAllData();
+      }
+    } catch (error) {
+      console.error('Clock out error:', error);
+    }
+  };
 
   // Handlers - Employees
   const handleAddEmployee = async (newEmpData: any) => {
@@ -106,16 +173,14 @@ export default function App() {
         body: JSON.stringify({ ...newEmpData, userRole: newEmpData.userRole || 'Employee' }),
       });
       if (res.ok) {
-        const createdEmp = await res.json();
-        setEmployees((prev) => [createdEmp, ...prev]);
-        fetchAllData();
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Error adding employee:', error);
     }
   };
 
-  const handleUpdateEmployeeProfile = async (id: string, updatedData: Partial<Employee>) => {
+  const handleUpdateEmployeeProfile = async (id: string, updatedData: any) => {
     try {
       const res = await fetch(`/api/employees/${id}/profile`, {
         method: 'PUT',
@@ -123,11 +188,7 @@ export default function App() {
         body: JSON.stringify(updatedData),
       });
       if (res.ok) {
-        const updatedUser = await res.json();
-        setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, ...updatedUser } : e)));
-        if (currentUser?.id === id) {
-          setCurrentUser((prev) => prev ? { ...prev, ...updatedUser } : null);
-        }
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Error updating employee profile:', error);
@@ -142,10 +203,7 @@ export default function App() {
         body: JSON.stringify({ documents: docs }),
       });
       if (res.ok) {
-        setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, documents: docs } : e)));
-        if (currentUser?.id === id) {
-          setCurrentUser((prev) => prev ? { ...prev, documents: docs } : null);
-        }
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Error updating employee documents:', error);
@@ -158,8 +216,7 @@ export default function App() {
         method: 'DELETE',
       });
       if (res.ok) {
-        setEmployees((prev) => prev.filter((e) => e.id !== id));
-        fetchAllData();
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Error deleting employee:', error);
@@ -175,13 +232,10 @@ export default function App() {
         body: JSON.stringify(newReq),
       });
       if (res.ok) {
-        const createdReq = await res.json();
-        setLeaveRequests((prev) => [createdReq, ...prev]);
-      } else {
-        setLeaveRequests((prev) => [newReq, ...prev]);
+        await fetchAllData();
       }
     } catch (error) {
-      setLeaveRequests((prev) => [newReq, ...prev]);
+      console.error('Error requesting leave:', error);
     }
   };
 
@@ -192,17 +246,9 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Approved', approverNote: note || `Approved by ${currentUser?.name}` }),
       });
-      setLeaveRequests((prev) =>
-        prev.map((r) =>
-          r.id === id ? { ...r, status: 'Approved', approverNote: note || `Approved by ${currentUser?.name}` } : r
-        )
-      );
+      await fetchAllData();
     } catch (error) {
-      setLeaveRequests((prev) =>
-        prev.map((r) =>
-          r.id === id ? { ...r, status: 'Approved' } : r
-        )
-      );
+      console.error('Error approving leave:', error);
     }
   };
 
@@ -213,15 +259,9 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Rejected', approverNote: note || `Rejected by ${currentUser?.name}` }),
       });
-      setLeaveRequests((prev) =>
-        prev.map((r) =>
-          r.id === id ? { ...r, status: 'Rejected', approverNote: note || `Rejected by ${currentUser?.name}` } : r
-        )
-      );
+      await fetchAllData();
     } catch (error) {
-      setLeaveRequests((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: 'Rejected' } : r))
-      );
+      console.error('Error rejecting leave:', error);
     }
   };
 
@@ -242,7 +282,7 @@ export default function App() {
     );
   };
 
-  // Handlers - Helpdesk Support Tickets (Persisted in PostgreSQL)
+  // Handlers - Helpdesk Support Tickets
   const handleSubmitTicket = async (newTck: SupportTicket) => {
     try {
       const res = await fetch('/api/helpdesk', {
@@ -251,14 +291,10 @@ export default function App() {
         body: JSON.stringify(newTck),
       });
       if (res.ok) {
-        const createdTck = await res.json();
-        setSupportTickets((prev) => [createdTck, ...prev]);
-      } else {
-        setSupportTickets((prev) => [newTck, ...prev]);
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Error submitting helpdesk ticket:', error);
-      setSupportTickets((prev) => [newTck, ...prev]);
     }
   };
 
@@ -270,15 +306,10 @@ export default function App() {
         body: JSON.stringify({ status }),
       });
       if (res.ok) {
-        setSupportTickets((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, status, lastUpdated: new Date().toISOString().split('T')[0] } : t))
-        );
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Error updating ticket status:', error);
-      setSupportTickets((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, status, lastUpdated: new Date().toISOString().split('T')[0] } : t))
-      );
     }
   };
 
@@ -291,7 +322,7 @@ export default function App() {
         body: JSON.stringify(updated),
       });
       if (res.ok) {
-        setCandidates((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Error updating candidate:', error);
@@ -307,7 +338,7 @@ export default function App() {
         body: JSON.stringify({ paymentStatus: status }),
       });
       if (res.ok) {
-        setPayroll((prev) => prev.map((p) => (p.id === id ? { ...p, paymentStatus: status } : p)));
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Error updating payroll:', error);
@@ -320,7 +351,7 @@ export default function App() {
         method: 'POST',
       });
       if (res.ok) {
-        setPayroll((prev) => prev.map((p) => ({ ...p, paymentStatus: 'Paid' })));
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Error running payroll batch:', error);
@@ -336,8 +367,7 @@ export default function App() {
         body: JSON.stringify(newGoal),
       });
       if (res.ok) {
-        const created = await res.json();
-        setGoals((prev) => [created, ...prev]);
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Error creating goal:', error);
@@ -352,7 +382,7 @@ export default function App() {
         body: JSON.stringify({ progress }),
       });
       if (res.ok) {
-        setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, progress } : g)));
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Error updating goal progress:', error);
@@ -371,7 +401,7 @@ export default function App() {
 
   // Render Login landing page if user is unauthenticated
   if (!currentUser) {
-    return <LoginView onLoginSuccess={(user) => setCurrentUser(user)} />;
+    return <LoginView onLoginSuccess={(user) => handleSetUser(user)} />;
   }
 
   const pendingLeavesCount = leaveRequests.filter((r) => r.status === 'Pending').length;
@@ -387,7 +417,7 @@ export default function App() {
         activeOnboardingCount={activeOnboardingCount}
         employeesCount={employees.length}
         currentUser={currentUser}
-        onLogout={() => setCurrentUser(null)}
+        onLogout={() => handleSetUser(null)}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
@@ -402,7 +432,7 @@ export default function App() {
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           onQuickAction={handleQuickAction}
           currentUser={currentUser}
-          onLogout={() => setCurrentUser(null)}
+          onLogout={() => handleSetUser(null)}
         />
 
         {/* View Router Body */}
@@ -432,6 +462,8 @@ export default function App() {
               onSubmitTicket={handleSubmitTicket}
               onUpdateEmployeeProfile={handleUpdateEmployeeProfile}
               onUpdateEmployeeDocuments={handleUpdateEmployeeDocuments}
+              onClockIn={handleClockIn}
+              onClockOut={handleClockOut}
             />
           )}
 

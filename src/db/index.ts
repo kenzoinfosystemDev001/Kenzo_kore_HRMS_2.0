@@ -157,6 +157,21 @@ export async function initDb() {
       );
     `);
 
+    // Create attendance table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS attendance (
+        id VARCHAR(50) PRIMARY KEY,
+        employee_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
+        employee_name VARCHAR(100) NOT NULL,
+        date DATE DEFAULT CURRENT_DATE,
+        check_in VARCHAR(50),
+        check_out VARCHAR(50),
+        work_hours VARCHAR(50) DEFAULT '0h 0m',
+        status VARCHAR(50) DEFAULT 'Present',
+        location VARCHAR(100) DEFAULT 'Delhi NCR (HQ)'
+      );
+    `);
+
     // Create helpdesk_tickets table
     await client.query(`
       CREATE TABLE IF NOT EXISTS helpdesk_tickets (

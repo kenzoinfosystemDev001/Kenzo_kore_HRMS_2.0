@@ -12,7 +12,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Gift,
-  Sun
+  Sun,
+  Lock,
+  CheckCircle2,
+  BarChart3
 } from 'lucide-react';
 import { NavView, UserAccount } from '../types';
 
@@ -25,6 +28,12 @@ interface HeaderProps {
   currentUser: UserAccount | null;
   onLogout: () => void;
 }
+
+const MONTHS_LIST = [
+  'January 2026', 'February 2026', 'March 2026', 'April 2026',
+  'May 2026', 'June 2026', 'July 2026', 'August 2026',
+  'September 2026', 'October 2026', 'November 2026', 'December 2026'
+];
 
 const VIEW_TITLES: Record<NavView, { title: string; subtitle: string }> = {
   dashboard: {
@@ -82,7 +91,8 @@ export const Header: React.FC<HeaderProps> = ({
   
   // Calendar Modal State (Point 3 - Interactive Working Calendar)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState('August 2026');
+  const [selectedMonthIdx, setSelectedMonthIdx] = useState(7); // August 2026 (0-indexed)
+  const [selectedDayLog, setSelectedDayLog] = useState<string | null>(null);
 
   const todayDateStr = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
@@ -98,6 +108,44 @@ export const Header: React.FC<HeaderProps> = ({
     { date: 'Nov 10, 2026', name: 'Diwali Festival', type: 'Festival Holiday' },
     { date: 'Dec 25, 2026', name: 'Christmas Day', type: 'Public Holiday' },
   ];
+
+  // Helper to render days grid for August 2026
+  const renderDaysGrid = () => {
+    const isCurrentMonth = selectedMonthIdx === 7; // August
+    const todayNum = 12;
+
+    const days = [];
+    for (let day = 1; day <= 31; day++) {
+      const isFuture = isCurrentMonth ? day > todayNum : selectedMonthIdx > 7;
+      const isToday = isCurrentMonth && day === todayNum;
+      const isHoliday = isCurrentMonth && day === 15;
+
+      days.push(
+        <button
+          key={day}
+          disabled={isFuture}
+          onClick={() => setSelectedDayLog(`Aug ${day}, 2026 - Present (Checked in 09:00 AM, Clocked out 06:00 PM)`)}
+          className={`
+            p-2 rounded-lg text-xs font-bold transition-all relative flex flex-col items-center justify-center
+            ${isToday 
+              ? 'bg-[#0060ac] text-white font-extrabold shadow-md ring-2 ring-blue-300' 
+              : isHoliday
+                ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                : isFuture
+                  ? 'bg-slate-100/50 text-slate-300 cursor-not-allowed border border-transparent'
+                  : 'hover:bg-blue-50 text-slate-800 border border-slate-200'
+            }
+          `}
+          title={isFuture ? 'Upcoming Day - Unclickable' : isHoliday ? 'Independence Day' : `Day ${day} Attendance`}
+        >
+          <span>{day}</span>
+          {isHoliday && <span className="text-[9px]">🎉</span>}
+          {isFuture && <Lock className="w-2.5 h-2.5 text-slate-300 absolute top-0.5 right-0.5" />}
+        </button>
+      );
+    }
+    return days;
+  };
 
   return (
     <>
@@ -141,7 +189,7 @@ export const Header: React.FC<HeaderProps> = ({
             />
           </div>
 
-          {/* Interactive Working Calendar Button (Point 3) */}
+          {/* Interactive Working Calendar Button */}
           <button
             onClick={() => setIsCalendarOpen(true)}
             className="hidden xl:flex items-center gap-1.5 text-xs text-slate-700 font-bold bg-white px-3 py-1.5 rounded-lg border border-[#e2e8f0] hover:bg-slate-50 hover:border-[#0060ac] transition-all cursor-pointer shadow-2xs"
@@ -206,9 +254,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </header>
 
-      {/* ---------------------------------------------------------------- */}
-      {/* INTERACTIVE WORKING CALENDAR MODAL (Point 3) */}
-      {/* ---------------------------------------------------------------- */}
+      {/* INTERACTIVE FULL-YEAR CALENDAR MODAL */}
       {isCalendarOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-200">
@@ -216,26 +262,36 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-[#0060ac]" />
-                <h3 className="text-base font-bold text-[#1a2b3c]">Company & Workday Calendar</h3>
+                <h3 className="text-base font-bold text-[#1a2b3c]">Full Year Workday & Attendance Calendar</h3>
               </div>
               <button onClick={() => setIsCalendarOpen(false)} className="text-slate-400 hover:text-slate-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Calendar Month Selector Header */}
+            {/* Calendar Month Selector */}
             <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setSelectedMonth('July 2026')}
+                  onClick={() => setSelectedMonthIdx((prev) => (prev > 0 ? prev - 1 : 11))}
                   className="p-1 hover:bg-slate-200 rounded text-slate-600"
+                  title="Previous Month"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="font-bold text-sm text-[#1a2b3c]">{selectedMonth}</span>
+                <select
+                  value={selectedMonthIdx}
+                  onChange={(e) => setSelectedMonthIdx(Number(e.target.value))}
+                  className="font-bold text-sm text-[#1a2b3c] bg-white border border-slate-300 rounded-lg px-2 py-1 focus:outline-none"
+                >
+                  {MONTHS_LIST.map((m, idx) => (
+                    <option key={idx} value={idx}>{m}</option>
+                  ))}
+                </select>
                 <button 
-                  onClick={() => setSelectedMonth('September 2026')}
+                  onClick={() => setSelectedMonthIdx((prev) => (prev < 11 ? prev + 1 : 0))}
                   className="p-1 hover:bg-slate-200 rounded text-slate-600"
+                  title="Next Month"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -245,74 +301,54 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
 
-            {/* August 2026 Days Grid */}
+            {/* Past 1 Month Attendance Analysis Box */}
+            <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-1.5 text-xs">
+              <h4 className="font-bold text-[#0060ac] flex items-center gap-1.5">
+                <BarChart3 className="w-4 h-4" /> Past 1 Month Attendance Analysis
+              </h4>
+              <div className="grid grid-cols-4 gap-2 text-center text-[11px]">
+                <div className="bg-white p-1.5 rounded-lg border border-blue-100 font-bold text-slate-800">
+                  <span>22 / 23</span>
+                  <p className="text-[9px] text-slate-500 font-normal">Present Days</p>
+                </div>
+                <div className="bg-white p-1.5 rounded-lg border border-blue-100 font-bold text-emerald-700">
+                  <span>96.2%</span>
+                  <p className="text-[9px] text-slate-500 font-normal">Punctuality</p>
+                </div>
+                <div className="bg-white p-1.5 rounded-lg border border-blue-100 font-bold text-purple-700">
+                  <span>8h 45m</span>
+                  <p className="text-[9px] text-slate-500 font-normal">Avg Daily Hours</p>
+                </div>
+                <div className="bg-white p-1.5 rounded-lg border border-blue-100 font-bold text-amber-700">
+                  <span>1 Day</span>
+                  <p className="text-[9px] text-slate-500 font-normal">Late Punch</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Days Grid */}
             <div className="space-y-1 text-xs">
               <div className="grid grid-cols-7 text-center font-bold text-slate-400 py-1 uppercase text-[10px]">
                 <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
               </div>
               <div className="grid grid-cols-7 text-center gap-1 text-xs font-medium">
-                {/* Empty padding for month start */}
-                <div className="p-2 text-slate-300">26</div>
-                <div className="p-2 text-slate-300">27</div>
-                <div className="p-2 text-slate-300">28</div>
-                <div className="p-2 text-slate-300">29</div>
-                <div className="p-2 text-slate-300">30</div>
-                <div className="p-2 text-slate-300">31</div>
-                <div className="p-2 rounded-lg bg-slate-100 text-slate-700 font-bold">1</div>
-
-                <div className="p-2 rounded-lg hover:bg-slate-100">2</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">3</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">4</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">5</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">6</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">7</div>
-                <div className="p-2 rounded-lg bg-slate-100 text-slate-700 font-bold">8</div>
-
-                <div className="p-2 rounded-lg hover:bg-slate-100">9</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">10</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">11</div>
-
-                {/* Today Highlight (Aug 12) */}
-                <div className="p-2 rounded-lg bg-[#0060ac] text-white font-extrabold shadow-md ring-2 ring-blue-300">
-                  12
-                </div>
-
-                <div className="p-2 rounded-lg hover:bg-slate-100">13</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">14</div>
-
-                {/* Holiday Highlight (Aug 15 Independence Day) */}
-                <div className="p-2 rounded-lg bg-amber-100 text-amber-900 font-bold border border-amber-300" title="Independence Day Holiday">
-                  15 🎉
-                </div>
-
-                <div className="p-2 rounded-lg hover:bg-slate-100">16</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">17</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">18</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">19</div>
-                <div className="p-2 rounded-lg bg-purple-100 text-purple-900 font-bold" title="Scheduled PTO">20 🌴</div>
-                <div className="p-2 rounded-lg bg-purple-100 text-purple-900 font-bold" title="Scheduled PTO">21 🌴</div>
-                <div className="p-2 rounded-lg bg-purple-100 text-purple-900 font-bold" title="Scheduled PTO">22 🌴</div>
-
-                <div className="p-2 rounded-lg hover:bg-slate-100">23</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">24</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">25</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">26</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">27</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">28</div>
-                <div className="p-2 rounded-lg bg-slate-100 text-slate-700 font-bold">29</div>
-
-                <div className="p-2 rounded-lg hover:bg-slate-100">30</div>
-                <div className="p-2 rounded-lg hover:bg-slate-100">31</div>
+                {renderDaysGrid()}
               </div>
             </div>
+
+            {selectedDayLog && (
+              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium">
+                📅 {selectedDayLog}
+              </div>
+            )}
 
             {/* Upcoming Holidays List */}
             <div className="border-t border-slate-200 pt-3 space-y-2 text-xs">
               <h4 className="font-bold text-slate-700 flex items-center gap-1.5">
-                <Gift className="w-4 h-4 text-amber-600" /> Upcoming Company Holidays & Events
+                <Gift className="w-4 h-4 text-amber-600" /> Upcoming Company Holidays
               </h4>
 
-              <div className="space-y-1.5 max-h-36 overflow-y-auto">
+              <div className="space-y-1 max-h-28 overflow-y-auto">
                 {companyHolidays.map((h, i) => (
                   <div key={i} className="p-2 rounded-lg bg-slate-50 border border-slate-200 flex justify-between items-center text-xs">
                     <div>

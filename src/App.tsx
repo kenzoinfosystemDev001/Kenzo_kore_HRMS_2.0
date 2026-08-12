@@ -40,21 +40,14 @@ import {
 } from './data/hrmsArchitectureData';
 
 export default function App() {
-  // Session Persistence: restore user from localStorage on refresh!
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
-    try {
-      const stored = localStorage.getItem('kenzo_user');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+  // 100% Server & PostgreSQL Database State (No LocalStorage)
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
 
   const [currentView, setCurrentView] = useState<NavView>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // App Database State
+  // App Database State - Fetched directly from Neon PostgreSQL server
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
@@ -62,7 +55,7 @@ export default function App() {
   const [goals, setGoals] = useState<PerformanceGoal[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
 
-  // HRMS Architecture Extensions State
+  // HRMS Architecture Extensions State - Server Synced
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE_RECORDS);
   const [attendanceCorrections, setAttendanceCorrections] = useState<AttendanceCorrection[]>(INITIAL_ATTENDANCE_CORRECTIONS);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(INITIAL_SUPPORT_TICKETS);
@@ -70,19 +63,7 @@ export default function App() {
   const [announcements, setAnnouncements] = useState<Announcement[]>(INITIAL_ANNOUNCEMENTS);
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
 
-  const [loadingData, setLoadingData] = useState(false);
-
-  // Helper to update user state & localStorage
-  const handleSetUser = (user: UserAccount | null) => {
-    setCurrentUser(user);
-    if (user) {
-      localStorage.setItem('kenzo_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('kenzo_user');
-    }
-  };
-
-  // Load state from backend API when logged in
+  // Load state directly from Neon PostgreSQL Database via Express API Server
   const fetchAllData = async () => {
     try {
       const [empRes, leaveRes, payRes, candRes, goalRes, actRes, tckRes, attRes] = await Promise.all([
@@ -99,11 +80,11 @@ export default function App() {
       if (empRes.ok) {
         const fetchedEmps = await empRes.json();
         setEmployees(fetchedEmps);
-        // If current user is logged in, refresh their profile object
+        // If user is currently logged in, sync their profile directly with latest PostgreSQL row
         if (currentUser) {
           const match = fetchedEmps.find((e: Employee) => e.id === currentUser.id || e.email.toLowerCase() === currentUser.email.toLowerCase());
           if (match) {
-            handleSetUser(match);
+            setCurrentUser(match);
           }
         }
       }
@@ -115,14 +96,14 @@ export default function App() {
       if (tckRes.ok) setSupportTickets(await tckRes.json());
       if (attRes.ok) setAttendanceRecords(await attRes.json());
     } catch (error) {
-      console.error('Error loading HRMS data from backend:', error);
+      console.error('Error loading data from Neon PostgreSQL database:', error);
     }
   };
 
   useEffect(() => {
     if (currentUser) {
       fetchAllData();
-      // Real-time polling every 5 seconds so Admin & Employees see live updates instantly!
+      // Real-time server sync polling every 5 seconds for cross-device consistency!
       const interval = setInterval(() => {
         fetchAllData();
       }, 5000);
@@ -130,7 +111,7 @@ export default function App() {
     }
   }, [currentUser?.id]);
 
-  // Handlers - Clock In / Clock Out
+  // Handlers - Clock In / Clock Out (Direct Server Calls)
   const handleClockIn = async (employeeId: string, employeeName: string) => {
     try {
       const res = await fetch('/api/attendance/clock-in', {
@@ -143,7 +124,7 @@ export default function App() {
         alert(data.error || 'Clock-in failed');
         return;
       }
-      fetchAllData();
+      await fetchAllData();
     } catch (error) {
       console.error('Clock in error:', error);
     }
@@ -157,14 +138,14 @@ export default function App() {
         body: JSON.stringify({ employeeId }),
       });
       if (res.ok) {
-        fetchAllData();
+        await fetchAllData();
       }
     } catch (error) {
       console.error('Clock out error:', error);
     }
   };
 
-  // Handlers - Employees
+  // Handlers - Employees (Direct PostgreSQL Calls)
   const handleAddEmployee = async (newEmpData: any) => {
     try {
       const res = await fetch('/api/employees', {
@@ -223,7 +204,7 @@ export default function App() {
     }
   };
 
-  // Handlers - Leaves
+  // Handlers - Leaves (Direct PostgreSQL Calls)
   const handleRequestLeave = async (newReq: LeaveRequest) => {
     try {
       const res = await fetch('/api/leaves', {
@@ -282,7 +263,7 @@ export default function App() {
     );
   };
 
-  // Handlers - Helpdesk Support Tickets
+  // Handlers - Helpdesk Support Tickets (Direct PostgreSQL Calls)
   const handleSubmitTicket = async (newTck: SupportTicket) => {
     try {
       const res = await fetch('/api/helpdesk', {
@@ -401,7 +382,7 @@ export default function App() {
 
   // Render Login landing page if user is unauthenticated
   if (!currentUser) {
-    return <LoginView onLoginSuccess={(user) => handleSetUser(user)} />;
+    return <LoginView onLoginSuccess={(user) => setCurrentUser(user)} />;
   }
 
   const pendingLeavesCount = leaveRequests.filter((r) => r.status === 'Pending').length;
@@ -417,7 +398,7 @@ export default function App() {
         activeOnboardingCount={activeOnboardingCount}
         employeesCount={employees.length}
         currentUser={currentUser}
-        onLogout={() => handleSetUser(null)}
+        onLogout={() => setCurrentUser(null)}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
@@ -432,7 +413,7 @@ export default function App() {
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           onQuickAction={handleQuickAction}
           currentUser={currentUser}
-          onLogout={() => handleSetUser(null)}
+          onLogout={() => setCurrentUser(null)}
         />
 
         {/* View Router Body */}

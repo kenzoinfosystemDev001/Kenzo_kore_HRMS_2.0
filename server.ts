@@ -723,9 +723,9 @@ app.post('/api/attendance/clock-in', async (req, res) => {
     const minutes = now.getMinutes();
     const today = now.toISOString().split('T')[0];
 
-    // Rule: No one can clock in after 6:00 PM (18:00)
-    if (hours >= 18) {
-      return res.status(400).json({ error: 'Clock-in is disabled after 6:00 PM.' });
+    // Rule: No clock-in after 5:00 PM (17:00)
+    if (hours >= 17) {
+      return res.status(400).json({ error: 'Clock-in is disabled after 5:00 PM.' });
     }
 
     // Check if already clocked in today
@@ -899,6 +899,27 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Automatic 7:05 PM (19:05) Clock-Out Background Worker
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const today = now.toISOString().split('T')[0];
+
+      if (hours > 19 || (hours === 19 && minutes >= 5)) {
+        await pool.query(
+          `UPDATE attendance 
+           SET check_out = '07:05 PM', work_hours = '9h 35m' 
+           WHERE date = $1 AND check_in IS NOT NULL AND check_out IS NULL`,
+          [today]
+        );
+      }
+    } catch (err) {
+      // Background worker quiet retry
+    }
+  }, 30000);
 
   app.listen(PORT, () => {
     console.log(`Kenzo_Kore_HRMS Server running at http://localhost:${PORT}`);

@@ -22,6 +22,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { LeaveRequest, LeaveType, Employee, UserAccount, AttendanceRecord, AttendanceCorrection } from '../../types';
+import { AttendanceCalendar } from '../attendance/AttendanceCalendar';
 
 interface LeaveViewProps {
   leaveRequests: LeaveRequest[];
@@ -519,85 +520,106 @@ export const LeaveView: React.FC<LeaveViewProps> = ({
               </div>
             </div>
           </div>
+
+          {/* INTERACTIVE MONTHLY ATTENDANCE CALENDAR */}
+          <AttendanceCalendar
+            attendanceRecords={attendanceRecords}
+            currentUser={currentUser}
+            employees={employees}
+            isAdmin={true}
+            onClockIn={onClockIn}
+            onClockOut={onClockOut}
+          />
         </div>
       ) : (
         /* EMPLOYEE STRICTLY ISOLATED ATTENDANCE VIEW */
-        <div className="bg-white rounded-xl border border-[#e2e8f0] p-5 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-              <h3 className="text-sm font-bold text-[#1a2b3c] flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-[#0060ac]" /> My Attendance Analysis & Log History (/attendance/me/history)
-              </h3>
-              <p className="text-xs text-slate-500">Track your daily check-ins, check-outs, work duration, and punctuality rate</p>
+        <div className="space-y-6">
+          <AttendanceCalendar
+            attendanceRecords={attendanceRecords}
+            currentUser={currentUser}
+            employees={employees}
+            isAdmin={false}
+            onClockIn={onClockIn}
+            onClockOut={onClockOut}
+          />
+
+          <div className="bg-white rounded-xl border border-[#e2e8f0] p-5 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-[#1a2b3c] flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-[#0060ac]" /> My Attendance Analysis & Log History (/attendance/me/history)
+                </h3>
+                <p className="text-xs text-slate-500">Track your daily check-ins, check-outs, work duration, and punctuality rate</p>
+              </div>
+
+              <button
+                onClick={() => setIsCorrectionModalOpen(true)}
+                className="text-xs font-bold text-[#0060ac] hover:underline flex items-center gap-1"
+              >
+                + Request Punch Correction
+              </button>
             </div>
 
-            <button
-              onClick={() => setIsCorrectionModalOpen(true)}
-              className="text-xs font-bold text-[#0060ac] hover:underline flex items-center gap-1"
-            >
-              + Request Punch Correction
-            </button>
-          </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-[11px] font-semibold text-slate-500">Present Days</span>
+                <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">{presentDaysText}</p>
+                <span className="text-[10px] font-bold text-emerald-600">{presentRatePct}</span>
+              </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="text-[11px] font-semibold text-slate-500">Present Days</span>
-              <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">{presentDaysText}</p>
-              <span className="text-[10px] font-bold text-emerald-600">{presentRatePct}</span>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-[11px] font-semibold text-slate-500">Punctuality Score</span>
+                <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">{punctualityScorePct}</p>
+                <span className="text-[10px] font-bold text-teal-600">{punctualityLabel}</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-[11px] font-semibold text-slate-500">Avg Daily Work Hours</span>
+                <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">{avgWorkHoursStr}</p>
+                <span className="text-[10px] font-bold text-blue-600">Full Shift</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-[11px] font-semibold text-slate-500">Late Punch occurrences</span>
+                <p className="text-lg font-bold text-amber-700 mt-0.5">{empLateCount} Day{empLateCount === 1 ? '' : 's'}</p>
+                <span className="text-[10px] font-bold text-amber-600">{latestLateDateStr}</span>
+              </div>
             </div>
 
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="text-[11px] font-semibold text-slate-500">Punctuality Score</span>
-              <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">{punctualityScorePct}</p>
-              <span className="text-[10px] font-bold text-teal-600">{punctualityLabel}</span>
-            </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="text-[11px] font-semibold text-slate-500">Avg Daily Work Hours</span>
-              <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">{avgWorkHoursStr}</p>
-              <span className="text-[10px] font-bold text-blue-600">Full Shift</span>
-            </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="text-[11px] font-semibold text-slate-500">Late Punch occurrences</span>
-              <p className="text-lg font-bold text-amber-700 mt-0.5">{empLateCount} Day{empLateCount === 1 ? '' : 's'}</p>
-              <span className="text-[10px] font-bold text-amber-600">{latestLateDateStr}</span>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto border border-slate-200 rounded-xl">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100/80 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="p-3 pl-4">Date</th>
-                  <th className="p-3">Check In</th>
-                  <th className="p-3">Check Out</th>
-                  <th className="p-3">Work Duration</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Location</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {myAttendanceLogs.map((att) => (
-                  <tr key={att.id} className="hover:bg-slate-50">
-                    <td className="p-3 pl-4 font-bold text-[#1a2b3c]">{att.date}</td>
-                    <td className="p-3 font-mono">{att.checkIn || '--'}</td>
-                    <td className="p-3 font-mono">{att.checkOut || '--'}</td>
-                    <td className="p-3 font-bold text-slate-900">{att.workHours}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        att.status === 'Present' ? 'bg-emerald-100 text-emerald-800' :
-                        att.status === 'Late' ? 'bg-amber-100 text-amber-800' :
-                        'bg-purple-100 text-purple-800'
-                      }`}>
-                        {att.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-slate-500">{att.location}</td>
+            <div className="overflow-x-auto border border-slate-200 rounded-xl">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-100/80 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="p-3 pl-4">Date</th>
+                    <th className="p-3">Check In</th>
+                    <th className="p-3">Check Out</th>
+                    <th className="p-3">Work Duration</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Location</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {myAttendanceLogs.map((att) => (
+                    <tr key={att.id} className="hover:bg-slate-50">
+                      <td className="p-3 pl-4 font-bold text-[#1a2b3c]">{att.date}</td>
+                      <td className="p-3 font-mono">{att.checkIn || '--'}</td>
+                      <td className="p-3 font-mono">{att.checkOut || '--'}</td>
+                      <td className="p-3 font-bold text-slate-900">{att.workHours}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          att.status === 'Present' ? 'bg-emerald-100 text-emerald-800' :
+                          att.status === 'Late' ? 'bg-amber-100 text-amber-800' :
+                          'bg-purple-100 text-purple-800'
+                        }`}>
+                          {att.status}
+                        </span>
+                      </td>
+                      <td className="p-3 text-slate-500">{att.location}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

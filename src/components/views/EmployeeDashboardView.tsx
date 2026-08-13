@@ -58,6 +58,8 @@ interface EmployeeDashboardViewProps {
   onSubmitTicket: (newTck: SupportTicket) => void;
   onUpdateEmployeeProfile?: (id: string, updatedData: Partial<Employee>) => void;
   onUpdateEmployeeDocuments?: (id: string, docs: EmployeeDocument[]) => void;
+  onClockIn?: (employeeId: string, employeeName: string) => void;
+  onClockOut?: (employeeId: string) => void;
 }
 
 export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
@@ -77,6 +79,8 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
   onSubmitTicket,
   onUpdateEmployeeProfile,
   onUpdateEmployeeDocuments,
+  onClockIn,
+  onClockOut,
 }) => {
   // Real-time Clock for Attendance
   const [checkedIn, setCheckedIn] = useState(true);
@@ -417,35 +421,68 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900">
                 <Clock className="w-4 h-4 text-blue-600" />
-                <span>Today's Attendance</span>
+                <span>Today's Attendance (2026-08-13)</span>
               </div>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                checkedIn ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
-              }`}>
-                {checkedIn ? `Checked In (${checkInTime})` : 'Not Checked In'}
-              </span>
+              {(() => {
+                const todayRec = myAttendance.find(a => a.date === '2026-08-13');
+                const isIn = Boolean(todayRec?.checkIn);
+                return (
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    isIn ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}>
+                    {isIn ? `Checked In (${todayRec?.checkIn})` : 'Not Checked In'}
+                  </span>
+                );
+              })()}
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">Shift: 09:00 AM - 06:00 PM • Delhi HQ</p>
+            <p className="text-[11px] text-slate-500 mt-1">Shift: 09:00 AM - 06:00 PM • Single-day marking rule</p>
           </div>
 
-          <button
-            onClick={() => {
-              if (!checkedIn) {
-                setCheckedIn(true);
-                setCheckInTime(currentTime);
-              } else {
-                setCheckedIn(false);
-                setCheckInTime(null);
+          {(() => {
+            const todayRec = myAttendance.find(a => a.date === '2026-08-13');
+            const isIn = Boolean(todayRec?.checkIn);
+            const isOut = Boolean(todayRec?.checkOut);
+            const isAfter5 = new Date().getHours() >= 17;
+
+            if (!isIn) {
+              if (isAfter5) {
+                return (
+                  <div className="w-full py-2 px-3 font-bold text-xs rounded-xl bg-red-50 text-red-800 border border-red-200 text-center flex items-center justify-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-600" />
+                    Clock-in Closed After 05:00 PM
+                  </div>
+                );
               }
-            }}
-            className={`w-full py-2.5 px-3 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 ${
-              checkedIn 
-                ? 'bg-slate-800 hover:bg-slate-900 text-white' 
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-            }`}
-          >
-            <span>{checkedIn ? `Clock Out (${currentTime})` : `Clock In (${currentTime})`}</span>
-          </button>
+              return (
+                <button
+                  onClick={() => onClockIn && onClockIn(currentUser?.id || 'EMP-1001', currentUser?.name || 'Employee')}
+                  className="w-full py-2.5 px-3 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Clock In Now ({currentTime})</span>
+                </button>
+              );
+            }
+
+            if (!isOut) {
+              return (
+                <button
+                  onClick={() => onClockOut && onClockOut(currentUser?.id || 'EMP-1001')}
+                  className="w-full py-2.5 px-3 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Clock Out Now ({currentTime})</span>
+                </button>
+              );
+            }
+
+            return (
+              <div className="w-full py-2 px-3 font-bold text-xs rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-center flex items-center justify-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Shift Completed ({todayRec?.checkIn} - {todayRec?.checkOut})
+              </div>
+            );
+          })()}
         </div>
 
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs space-y-3 flex flex-col justify-between hover:shadow-xs transition-all">

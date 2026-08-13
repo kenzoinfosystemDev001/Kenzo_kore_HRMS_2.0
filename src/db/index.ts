@@ -278,12 +278,7 @@ export async function initDb() {
 
     const passwordHash = await bcrypt.hash('kenzo123', 10);
 
-    // Clean up any old dummy users not in the 5 required list
-    const allowedEmails = requiredUsers.map((u) => u.email.toLowerCase());
-    await client.query(
-      `DELETE FROM users WHERE LOWER(email) NOT IN (${allowedEmails.map((_, i) => `$${i + 1}`).join(',')})`,
-      allowedEmails
-    );
+    // Seed/Upsert default required system users without deleting any newly added employees
 
     // Upsert the 5 required users
     for (const u of requiredUsers) {

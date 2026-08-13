@@ -154,7 +154,12 @@ export default function App() {
         body: JSON.stringify({ ...newEmpData, userRole: newEmpData.userRole || 'Employee' }),
       });
       if (res.ok) {
+        const createdEmp = await res.json();
+        setEmployees(prev => [createdEmp, ...prev.filter(e => e.id !== createdEmp.id)]);
         await fetchAllData();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || 'Failed to create employee profile in database');
       }
     } catch (error) {
       console.error('Error adding employee:', error);

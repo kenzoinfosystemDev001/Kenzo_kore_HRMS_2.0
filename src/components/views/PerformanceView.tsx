@@ -9,11 +9,12 @@ import {
   User, 
   X
 } from 'lucide-react';
-import { PerformanceGoal, Employee } from '../../types';
+import { PerformanceGoal, Employee, UserAccount } from '../../types';
 
 interface PerformanceViewProps {
   goals: PerformanceGoal[];
   employees: Employee[];
+  currentUser?: UserAccount | null;
   onAddGoal: (goal: PerformanceGoal) => void;
   onUpdateGoalProgress: (id: string, progress: number) => void;
 }
@@ -21,6 +22,7 @@ interface PerformanceViewProps {
 export const PerformanceView: React.FC<PerformanceViewProps> = ({
   goals,
   employees,
+  currentUser,
   onAddGoal,
   onUpdateGoalProgress,
 }) => {
@@ -44,7 +46,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
       progress: 0,
       dueDate,
       rating: 4.5,
-      reviewer: 'Sarah Jenkins',
+      reviewer: currentUser?.name || 'HR Admin',
     };
 
     onAddGoal(newGoal);

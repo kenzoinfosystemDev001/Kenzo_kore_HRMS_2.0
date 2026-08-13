@@ -12,28 +12,49 @@ import {
   MessageSquare,
   AlertCircle
 } from 'lucide-react';
-import { AiChatMessage, Employee } from '../../types';
+import { AiChatMessage, Employee, UserAccount } from '../../types';
 
 interface AiAssistantViewProps {
   employees: Employee[];
+  currentUser?: UserAccount | null;
 }
 
-const QUICK_PROMPTS = [
-  'Draft welcome onboarding message for Lucas Thorne (Sales AE)',
-  'Summarize enterprise parental leave policy & PTO rules',
-  'Draft executive announcement for Marcus Chen promotion to Principal Staff Architect',
-  'Provide recommendations to reduce engineering turnover risk',
-];
+export const AiAssistantView: React.FC<AiAssistantViewProps> = ({ employees, currentUser }) => {
+  const activeEmp1 = employees[0]?.name || 'Sujal kumar';
+  const activeEmp2 = employees[1]?.name || 'Laxmi Narayan';
 
-export const AiAssistantView: React.FC<AiAssistantViewProps> = ({ employees }) => {
+  const quickPrompts = [
+    `Draft welcome onboarding message for ${activeEmp1}`,
+    'Summarize enterprise parental leave policy & PTO rules',
+    `Draft executive announcement for ${activeEmp2} promotion`,
+    'Provide recommendations to reduce engineering turnover risk',
+  ];
+
+  const userName = currentUser?.name ? currentUser.name.split(' ')[0] : 'User';
+
   const [messages, setMessages] = useState<AiChatMessage[]>([
     {
       id: 'm1',
       sender: 'ai',
-      text: `Hello Sarah. I am your Executive AI HR Consultant. How can I assist you with policy drafting, employee communications, or compliance reviews today?`,
+      text: `Hello ${userName}. I am your Executive AI HR Consultant. How can I assist you with policy drafting, employee communications, or compliance reviews today?`,
       timestamp: 'Just now',
     }
   ]);
+
+  React.useEffect(() => {
+    const currentFirstName = currentUser?.name ? currentUser.name.split(' ')[0] : 'User';
+    setMessages(prev => {
+      if (prev.length > 0 && prev[0].id === 'm1') {
+        const updated = [...prev];
+        updated[0] = {
+          ...updated[0],
+          text: `Hello ${currentFirstName}. I am your Executive AI HR Consultant. How can I assist you with policy drafting, employee communications, or compliance reviews today?`,
+        };
+        return updated;
+      }
+      return prev;
+    });
+  }, [currentUser?.name]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -127,7 +148,7 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({ employees }) =
           <Lightbulb className="w-3.5 h-3.5 text-amber-500" /> Recommended HR Prompt Chips
         </p>
         <div className="flex flex-wrap gap-2">
-          {QUICK_PROMPTS.map((prompt, idx) => (
+          {quickPrompts.map((prompt, idx) => (
             <button
               key={idx}
               onClick={() => handleSendPrompt(prompt)}

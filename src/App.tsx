@@ -518,13 +518,14 @@ export default function App() {
             <PerformanceView
               goals={goals}
               employees={employees}
+              currentUser={currentUser}
               onAddGoal={handleAddGoal}
               onUpdateGoalProgress={handleUpdateGoalProgress}
             />
           )}
 
           {currentView === 'ai-assistant' && (
-            <AiAssistantView employees={employees} />
+            <AiAssistantView employees={employees} currentUser={currentUser} />
           )}
 
           {currentView === 'settings' && (

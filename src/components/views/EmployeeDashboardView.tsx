@@ -129,6 +129,28 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
   const myLeaves = leaveRequests.filter(r => r.employeeId === currentUser?.id || r.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
   const myPayrollRecords = payroll.filter(p => p.employeeId === currentUser?.id || p.employeeName.toLowerCase() === currentUser?.name.toLowerCase() || p.employeeName.toLowerCase().includes(currentUser?.name.split(' ')[0].toLowerCase() || ''));
   const myPayroll = myPayrollRecords[0];
+
+  const userAnnSalary = currentUser?.salary || 135000;
+  const userBaseSal = Math.round(userAnnSalary / 24);
+  const userHealthDed = Math.round(userBaseSal * 0.03);
+  const userTaxDed = Math.round(userBaseSal * 0.28);
+  const userNetPay = userBaseSal + 500 - (userHealthDed + userTaxDed);
+
+  const latestPayrollRecord: PayrollRecord = myPayroll || {
+    id: `PAY-${currentUser?.id || '1001'}`,
+    employeeId: currentUser?.id || 'EMP-1001',
+    employeeName: currentUser?.name || 'Employee',
+    role: currentUser?.designation || 'Team Member',
+    department: currentUser?.department || 'Engineering',
+    baseSalary: userBaseSal,
+    bonus: 500,
+    healthDeduction: userHealthDed,
+    taxDeduction: userTaxDed,
+    netPay: userNetPay,
+    paymentStatus: 'Paid',
+    payPeriod: 'Aug 01 - Aug 15, 2026',
+  };
+
   const myAttendance = attendanceRecords.filter(a => a.employeeId === currentUser?.id || a.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
   const myAssets = assets.filter(a => a.assignedToId === currentUser?.id || a.assignedToName.toLowerCase() === currentUser?.name.toLowerCase());
   const myTickets = supportTickets.filter(t => t.employeeId === currentUser?.id || t.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
@@ -489,14 +511,17 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
             </div>
             <div className="mt-2 flex items-baseline justify-between">
               <span className="text-2xl font-extrabold text-[#1a2b3c]">
-                ₹{myPayroll ? myPayroll.netPay.toLocaleString() : ((currentUser?.salary || 125000) / 24 * 0.78).toFixed(0)}
+                ₹{latestPayrollRecord.netPay.toLocaleString()}
               </span>
-              <span className="text-[10px] text-slate-400">Net Pay</span>
+              <span className="text-[10px] text-slate-400">Net Pay ({latestPayrollRecord.payPeriod})</span>
             </div>
           </div>
 
           <button
-            onClick={() => setIsPayslipModalOpen(true)}
+            onClick={() => {
+              setSelectedPayslip(latestPayrollRecord);
+              setIsPayslipModalOpen(true);
+            }}
             className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
           >
             <Download className="w-3.5 h-3.5" /> Download Payslip PDF

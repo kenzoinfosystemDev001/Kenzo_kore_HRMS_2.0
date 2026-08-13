@@ -87,15 +87,16 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
     payPeriod: 'Aug 01 - Aug 15, 2026',
   };
 
-  // Trigger Automatic Real-Time Pop-Up for Employee if a payroll is ready/processing
+  // Trigger Automatic Real-Time Pop-Up for Employee if a payroll is ready/processing AND not acknowledged yet
   useEffect(() => {
     if (!isAdmin && mySingleRecord && (mySingleRecord.paymentStatus === 'Processing' || mySingleRecord.paymentStatus === 'Paid')) {
-      const acknowledged = sessionStorage.getItem(`acknowledged_${mySingleRecord.id}`);
-      if (!acknowledged) {
+      const ack1 = localStorage.getItem(`acknowledged_${mySingleRecord.id}`);
+      const ack2 = localStorage.getItem(`acknowledged_${currentUser?.id}_${mySingleRecord.id}`);
+      if (!ack1 && !ack2) {
         setIsEmployeeDisbursementPopupOpen(true);
       }
     }
-  }, [isAdmin, mySingleRecord.id]);
+  }, [isAdmin, mySingleRecord.id, currentUser?.id]);
 
   const recordsToRender = displayPayroll.length > 0 ? displayPayroll : [mySingleRecord];
 
@@ -132,7 +133,10 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
   };
 
   const handleEmployeeAcknowledge = () => {
-    sessionStorage.setItem(`acknowledged_${mySingleRecord.id}`, 'true');
+    localStorage.setItem(`acknowledged_${mySingleRecord.id}`, 'true');
+    if (currentUser?.id) {
+      localStorage.setItem(`acknowledged_${currentUser.id}_${mySingleRecord.id}`, 'true');
+    }
     onUpdatePayrollStatus(mySingleRecord.id, 'Paid');
     setIsEmployeeDisbursementPopupOpen(false);
     alert('Thank you! Salary disbursement receipt acknowledged.');

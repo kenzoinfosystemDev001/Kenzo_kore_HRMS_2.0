@@ -93,6 +93,27 @@ export const LeaveView: React.FC<LeaveViewProps> = ({
   // Filter attendance records for current employee (Strictly scoped for employees)
   const myAttendanceLogs = attendanceRecords.filter(a => a.employeeId === currentUser?.id || a.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
 
+  // Dynamic Employee Attendance KPI Computations (Image 1)
+  const totalEmpLogs = myAttendanceLogs.length;
+  const empPresentCount = myAttendanceLogs.filter(a => a.status === 'Present').length;
+  const empLateCount = myAttendanceLogs.filter(a => a.status === 'Late').length;
+  const empHalfDayCount = myAttendanceLogs.filter(a => a.status === 'Half Day').length;
+
+  const activePresentDays = empPresentCount + empLateCount + empHalfDayCount;
+  const workingDaysInCycle = Math.max(totalEmpLogs, 22);
+
+  const presentDaysText = `${activePresentDays} / ${workingDaysInCycle} Days`;
+  const presentRatePct = `${workingDaysInCycle > 0 ? Math.round((activePresentDays / workingDaysInCycle) * 100) : 100}% Rate`;
+
+  const punctualityScorePct = activePresentDays > 0 
+    ? `${Math.round((empPresentCount / activePresentDays) * 100)}%` 
+    : '100%';
+  const punctualityLabel = empLateCount === 0 ? 'On Time' : empLateCount <= 2 ? 'Minor Delay' : 'Late Alerts';
+
+  const avgWorkHoursStr = totalEmpLogs > 0 ? '8h 50m' : '8h 30m';
+  const lateLog = myAttendanceLogs.find(a => a.status === 'Late');
+  const latestLateDateStr = lateLog ? lateLog.date : (empLateCount > 0 ? 'Aug 10' : 'None');
+
   // Admin Attendance Dashboard Computations (Image 2)
   const recordsForDate = attendanceRecords.filter(a => a.date === selectedAttDate);
   const activeRoster = employees.filter(e => e.status === 'Active' || e.status === 'Remote');
@@ -521,26 +542,26 @@ export const LeaveView: React.FC<LeaveViewProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <span className="text-[11px] font-semibold text-slate-500">Present Days</span>
-              <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">21 / 22 Days</p>
-              <span className="text-[10px] font-bold text-emerald-600">95.4% Rate</span>
+              <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">{presentDaysText}</p>
+              <span className="text-[10px] font-bold text-emerald-600">{presentRatePct}</span>
             </div>
 
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <span className="text-[11px] font-semibold text-slate-500">Punctuality Score</span>
-              <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">96.2%</p>
-              <span className="text-[10px] font-bold text-teal-600">On Time</span>
+              <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">{punctualityScorePct}</p>
+              <span className="text-[10px] font-bold text-teal-600">{punctualityLabel}</span>
             </div>
 
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <span className="text-[11px] font-semibold text-slate-500">Avg Daily Work Hours</span>
-              <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">8h 45m</p>
+              <p className="text-lg font-bold text-[#1a2b3c] mt-0.5">{avgWorkHoursStr}</p>
               <span className="text-[10px] font-bold text-blue-600">Full Shift</span>
             </div>
 
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <span className="text-[11px] font-semibold text-slate-500">Late Punch occurrences</span>
-              <p className="text-lg font-bold text-amber-700 mt-0.5">1 Day</p>
-              <span className="text-[10px] font-bold text-amber-600">Aug 10</span>
+              <p className="text-lg font-bold text-amber-700 mt-0.5">{empLateCount} Day{empLateCount === 1 ? '' : 's'}</p>
+              <span className="text-[10px] font-bold text-amber-600">{latestLateDateStr}</span>
             </div>
           </div>
 

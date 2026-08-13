@@ -14,7 +14,8 @@ import {
   X,
   Lock,
   Calendar,
-  CalendarCheck
+  CalendarCheck,
+  Edit3
 } from 'lucide-react';
 import { Employee, Department, EmploymentStatus, UserAccount, EmployeeDocument } from '../../types';
 import { EmployeeProfileModal } from '../profile/EmployeeProfileModal';
@@ -45,8 +46,14 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
   const [selectedDept, setSelectedDept] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [initialEditMode, setInitialEditMode] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+
+  const openEmployeeModal = (emp: Employee, editMode: boolean = false) => {
+    setSelectedEmployee(emp);
+    setInitialEditMode(editMode);
+  };
 
   // New Employee Form State
   const [newForm, setNewForm] = useState({
@@ -318,8 +325,16 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
 
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
+                        {isAdmin && (
+                          <button
+                            onClick={() => openEmployeeModal(emp, true)}
+                            className="px-2.5 py-1 text-[11px] font-bold rounded bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-2xs flex items-center gap-1"
+                          >
+                            <Edit3 className="w-3 h-3" /> Edit Details
+                          </button>
+                        )}
                         <button
-                          onClick={() => setSelectedEmployee(emp)}
+                          onClick={() => openEmployeeModal(emp, false)}
                           className="px-2.5 py-1 text-[11px] font-semibold rounded bg-slate-100 text-[#0060ac] hover:bg-blue-50 transition-colors"
                         >
                           Profile & Docs
@@ -396,7 +411,15 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                   </span>
                 )}
                 <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-[11px] font-semibold text-[#0060ac] hover:underline" onClick={() => setSelectedEmployee(emp)}>
+                  {isAdmin && (
+                    <button
+                      onClick={() => openEmployeeModal(emp, true)}
+                      className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-2xs flex items-center gap-1"
+                    >
+                      <Edit3 className="w-3 h-3" /> Edit
+                    </button>
+                  )}
+                  <span className="text-[11px] font-semibold text-[#0060ac] hover:underline cursor-pointer" onClick={() => openEmployeeModal(emp, false)}>
                     Profile & Docs &rarr;
                   </span>
                   {isAdmin && (
@@ -419,6 +442,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
         <EmployeeProfileModal
           employee={selectedEmployee}
           currentUser={currentUser}
+          initialEditMode={initialEditMode}
           onClose={() => setSelectedEmployee(null)}
           onUpdateProfile={(id, data) => {
             onUpdateEmployeeProfile(id, data);

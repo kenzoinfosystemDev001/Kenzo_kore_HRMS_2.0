@@ -123,9 +123,12 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
     day: 'numeric'
   });
 
+  const [selectedPayslip, setSelectedPayslip] = useState<PayrollRecord | null>(null);
+
   // Employee specific records
   const myLeaves = leaveRequests.filter(r => r.employeeId === currentUser?.id || r.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
-  const myPayroll = payroll.find(p => p.employeeId === currentUser?.id || p.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
+  const myPayrollRecords = payroll.filter(p => p.employeeId === currentUser?.id || p.employeeName.toLowerCase() === currentUser?.name.toLowerCase() || p.employeeName.toLowerCase().includes(currentUser?.name.split(' ')[0].toLowerCase() || ''));
+  const myPayroll = myPayrollRecords[0];
   const myAttendance = attendanceRecords.filter(a => a.employeeId === currentUser?.id || a.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
   const myAssets = assets.filter(a => a.assignedToId === currentUser?.id || a.assignedToName.toLowerCase() === currentUser?.name.toLowerCase());
   const myTickets = supportTickets.filter(t => t.employeeId === currentUser?.id || t.employeeName.toLowerCase() === currentUser?.name.toLowerCase());
@@ -553,6 +556,68 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
                       </tr>
                     ))}
                   </tbody>
+                 </table>
+              </div>
+            )}
+          </div>
+
+          {/* MY PAYROLL & PAYSLIP HISTORY SECTION */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-sm font-bold text-[#1a2b3c]">My Payroll & Payslip History (/payroll/me/history)</h3>
+              </div>
+              <span className="text-xs font-semibold text-slate-500">
+                {myPayrollRecords.length} Record(s) Disbursed
+              </span>
+            </div>
+
+            {myPayrollRecords.length === 0 ? (
+              <div className="p-6 text-center text-slate-500 text-xs">No payroll records disbursed yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-600 font-bold uppercase border-b border-slate-200">
+                    <tr>
+                      <th className="p-3 pl-4">Pay Period</th>
+                      <th className="p-3">Base Salary</th>
+                      <th className="p-3">Bonus</th>
+                      <th className="p-3">Deductions</th>
+                      <th className="p-3">Net Payout</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {myPayrollRecords.map((pay) => (
+                      <tr key={pay.id} className="hover:bg-slate-50">
+                        <td className="p-3 pl-4 font-bold text-[#1a2b3c]">{pay.payPeriod}</td>
+                        <td className="p-3 font-semibold text-slate-700">₹{pay.baseSalary.toLocaleString()}</td>
+                        <td className="p-3 font-semibold text-emerald-600">+₹{pay.bonus.toLocaleString()}</td>
+                        <td className="p-3 font-semibold text-red-600">-₹{(pay.healthDeduction + pay.taxDeduction).toLocaleString()}</td>
+                        <td className="p-3 font-extrabold text-[#1a2b3c]">₹{pay.netPay.toLocaleString()}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            pay.paymentStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {pay.paymentStatus}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <button
+                            onClick={() => {
+                              setSelectedPayslip(pay);
+                              setIsPayslipModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 text-[11px] font-bold rounded bg-[#0060ac] text-white hover:bg-[#004e8c] flex items-center gap-1 ml-auto shadow-2xs"
+                          >
+                            <Download className="w-3 h-3" /> View & Download
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
               </div>
             )}
@@ -840,74 +905,111 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
       )}
 
       {/* MODAL 3: PAYSLIP PREVIEW */}
-      {isPayslipModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-[#1a2b3c] flex items-center gap-2">
-                <FileText className="w-5 h-5 text-emerald-600" /> Payslip (/payroll/me/payslips/:id)
-              </h3>
-              <button onClick={() => setIsPayslipModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {isPayslipModalOpen && (() => {
+        const activePayslip = selectedPayslip || myPayroll || {
+          id: `PAY-${currentUser?.id || '1001'}`,
+          employeeId: currentUser?.id || 'EMP-1001',
+          employeeName: currentUser?.name || 'Employee',
+          role: currentUser?.designation || 'Software Engineer',
+          department: currentUser?.department || 'Engineering',
+          baseSalary: currentUser?.salary ? Math.round(currentUser.salary / 24) : 5625,
+          bonus: 500,
+          healthDeduction: 150,
+          taxDeduction: 1162.50,
+          netPay: 4812.50,
+          paymentStatus: 'Paid',
+          payPeriod: 'Aug 01 - Aug 15, 2026',
+        };
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
-              <div className="flex justify-between border-b border-slate-200 pb-2">
-                <div>
-                  <p className="font-bold text-sm text-[#1a2b3c]">{currentUser?.name}</p>
-                  <p className="text-slate-500">{currentUser?.designation} • {currentUser?.department}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-slate-800">Pay Period: August 2026</p>
-                  <p className="text-slate-500">ID: {currentUser?.id}</p>
-                </div>
+        return (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-200">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-base font-bold text-[#1a2b3c] flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-emerald-600" /> Official Payslip ({activePayslip.payPeriod})
+                </h3>
+                <button onClick={() => setIsPayslipModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {myPayrollRecords.length > 1 && (
                 <div>
-                  <p className="font-bold text-slate-700">Earnings</p>
-                  <div className="space-y-1 mt-1 text-slate-600">
-                    <div className="flex justify-between"><span>Base Salary:</span> <span>₹{(currentUser?.salary ? currentUser.salary / 12 * 0.8 : 8000).toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span>Performance Bonus:</span> <span>₹500.00</span></div>
+                  <label className="font-bold text-slate-700 block mb-1 text-xs">Select Pay Cycle</label>
+                  <select
+                    value={activePayslip.id}
+                    onChange={(e) => {
+                      const found = myPayrollRecords.find(p => p.id === e.target.value);
+                      if (found) setSelectedPayslip(found);
+                    }}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-xs"
+                  >
+                    {myPayrollRecords.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.payPeriod} — Net Payout: ₹{p.netPay.toLocaleString()} ({p.paymentStatus})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
+                <div className="flex justify-between border-b border-slate-200 pb-2">
+                  <div>
+                    <p className="font-bold text-sm text-[#1a2b3c]">{activePayslip.employeeName}</p>
+                    <p className="text-slate-500">{activePayslip.role} • {activePayslip.department}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-slate-800">Period: {activePayslip.payPeriod}</p>
+                    <p className="text-slate-500">ID: {activePayslip.employeeId}</p>
                   </div>
                 </div>
 
-                <div>
-                  <p className="font-bold text-slate-700">Deductions</p>
-                  <div className="space-y-1 mt-1 text-slate-600">
-                    <div className="flex justify-between"><span>Income Tax:</span> <span>₹1,200.00</span></div>
-                    <div className="flex justify-between"><span>Health Insurance:</span> <span>₹150.00</span></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="font-bold text-slate-700">Earnings</p>
+                    <div className="space-y-1 mt-1 text-slate-600">
+                      <div className="flex justify-between"><span>Base Salary:</span> <span>₹{activePayslip.baseSalary.toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span>Performance Bonus:</span> <span className="text-emerald-700 font-semibold">+₹{activePayslip.bonus.toLocaleString()}</span></div>
+                    </div>
                   </div>
+
+                  <div>
+                    <p className="font-bold text-slate-700">Deductions</p>
+                    <div className="space-y-1 mt-1 text-slate-600">
+                      <div className="flex justify-between"><span>Income Tax:</span> <span className="text-red-700 font-semibold">-₹{activePayslip.taxDeduction.toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span>Health Insurance:</span> <span className="text-red-700 font-semibold">-₹{activePayslip.healthDeduction.toLocaleString()}</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-200 pt-2 flex justify-between items-center text-sm font-bold text-[#1a2b3c]">
+                  <span>Net Payable Disbursed:</span>
+                  <span className="text-emerald-700 text-base">₹{activePayslip.netPay.toLocaleString()}</span>
                 </div>
               </div>
 
-              <div className="border-t border-slate-200 pt-2 flex justify-between items-center text-sm font-bold text-[#1a2b3c]">
-                <span>Net Payable Disbursed:</span>
-                <span className="text-emerald-700 text-base">₹{myPayroll ? myPayroll.netPay.toLocaleString() : '7,150.00'}</span>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  onClick={() => setIsPayslipModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    alert(`Payslip PDF for ${activePayslip.payPeriod} downloaded successfully.`);
+                    setIsPayslipModalOpen(false);
+                  }}
+                  className="px-5 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-700 flex items-center gap-1.5 shadow-xs"
+                >
+                  <Download className="w-4 h-4" /> Download Official PDF
+                </button>
               </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setIsPayslipModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  alert('Payslip PDF downloaded securely to local system.');
-                  setIsPayslipModalOpen(false);
-                }}
-                className="px-5 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-700 flex items-center gap-1.5"
-              >
-                <Download className="w-4 h-4" /> Download Official PDF
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* MODAL 4: RAISE HELPDESK TICKET (PostgreSQL Persisted) */}
       {isRaiseTicketModalOpen && (

@@ -30,8 +30,9 @@ interface EmployeeProfileModalProps {
   employee: Employee;
   currentUser: UserAccount | null;
   onClose: () => void;
-  onUpdateProfile: (id: string, updatedData: Partial<Employee> & { newEmpId?: string; newPassword?: string }) => void;
+  onUpdateProfile: (id: string, updatedData: Partial<Employee> & { newEmpId?: string; newPassword?: string; status?: string; manager?: string; userRole?: string }) => void;
   onUpdateDocuments?: (id: string, updatedDocs: EmployeeDocument[]) => void;
+  initialEditMode?: boolean;
 }
 
 export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
@@ -40,13 +41,14 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
   onClose,
   onUpdateProfile,
   onUpdateDocuments,
+  initialEditMode = false,
 }) => {
   const isAdmin = currentUser?.role === 'Admin';
   const isSelf = currentUser?.id === employee.id || currentUser?.email.toLowerCase() === employee.email.toLowerCase();
   const canEdit = isAdmin || isSelf;
 
   const [activeTab, setActiveTab] = useState<'details' | 'documents'>('details');
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(initialEditMode || false);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -67,6 +69,9 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     name: employee.name || '',
     phone: employee.phone || '',
     email: employee.email || '',
+    status: employee.status || 'Active',
+    manager: employee.manager || 'Admin Office',
+    userRole: (employee as any).role === 'Admin' ? 'Admin' : 'Employee',
     emergencyPhone: employee.emergencyPhone || '+91 98110 00000',
     address: employee.address || 'Kenzo - 32-C, UNIT NO. 107, B.R. COMPLEX, MAYUR VIHAR PHASE I, EAST DELHI - 110091',
     maritalStatus: employee.maritalStatus || 'Single',
@@ -240,7 +245,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                 {isAdmin && (
                   <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-200 space-y-3">
                     <h4 className="font-bold text-xs text-amber-900 flex items-center gap-1.5 uppercase tracking-wider">
-                      <ShieldCheck className="w-4 h-4 text-amber-700" /> HR Admin Governance Controls (Restricted)
+                      <ShieldCheck className="w-4 h-4 text-amber-700" /> HR Admin Governance Controls (Full Rewrite Access)
                     </h4>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -302,6 +307,44 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                           onChange={(e) => setForm({ ...form, salary: Number(e.target.value) })}
                           className="w-full p-2.5 bg-white border border-amber-300 rounded-lg font-bold text-[#1a2b3c] focus:outline-none focus:border-[#0060ac]"
                         />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Employment Status</label>
+                        <select
+                          value={form.status}
+                          onChange={(e) => setForm({ ...form, status: e.target.value as any })}
+                          className="w-full p-2.5 bg-white border border-amber-300 rounded-lg font-bold text-[#1a2b3c] focus:outline-none focus:border-[#0060ac]"
+                        >
+                          <option value="Active">Active</option>
+                          <option value="On Leave">On Leave</option>
+                          <option value="Remote">Remote</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Contractor">Contractor</option>
+                          <option value="Terminated">Terminated</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Reporting Manager</label>
+                        <input
+                          type="text"
+                          value={form.manager}
+                          onChange={(e) => setForm({ ...form, manager: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-amber-300 rounded-lg font-semibold text-[#1a2b3c] focus:outline-none focus:border-[#0060ac]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">System User Role</label>
+                        <select
+                          value={form.userRole}
+                          onChange={(e) => setForm({ ...form, userRole: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-amber-300 rounded-lg font-bold text-[#1a2b3c] focus:outline-none focus:border-[#0060ac]"
+                        >
+                          <option value="Employee">Employee</option>
+                          <option value="Admin">Admin</option>
+                        </select>
                       </div>
 
                       <div>

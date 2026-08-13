@@ -97,7 +97,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
     }
   }, [isAdmin, mySingleRecord.id]);
 
-  const recordsToRender = isAdmin ? displayPayroll : [mySingleRecord];
+  const recordsToRender = displayPayroll.length > 0 ? displayPayroll : [mySingleRecord];
 
   const totalNet = recordsToRender.reduce((acc, c) => acc + c.netPay, 0);
   const totalTaxes = recordsToRender.reduce((acc, c) => acc + c.taxDeduction + c.healthDeduction, 0);

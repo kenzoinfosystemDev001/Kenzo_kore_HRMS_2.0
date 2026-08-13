@@ -308,7 +308,56 @@ export async function initDb() {
       }
     }
 
-    console.log('Database schema & users initialized with extended profile fields and document vault!');
+    // Seed Payroll Records if empty
+    const payrollCheck = await client.query('SELECT COUNT(*) FROM payroll');
+    if (parseInt(payrollCheck.rows[0].count, 10) === 0) {
+      const samplePayrolls = [
+        { id: 'PAY-1001-1', empId: 'EMP-1001', name: 'Sujal kumar', role: 'Software Engineer', dept: 'Engineering', base: 5208.33, bonus: 500, health: 145.83, tax: 1000, net: 4562.50, status: 'Paid', period: 'Aug 01 - Aug 15, 2026' },
+        { id: 'PAY-1001-2', empId: 'EMP-1001', name: 'Sujal kumar', role: 'Software Engineer', dept: 'Engineering', base: 5208.33, bonus: 250, health: 145.83, tax: 1000, net: 4312.50, status: 'Paid', period: 'Jul 16 - Jul 31, 2026' },
+        { id: 'PAY-1002-1', empId: 'EMP-1002', name: 'Laxmi Narayan', role: 'Senior Frontend Developer', dept: 'Engineering', base: 5625.00, bonus: 500, health: 150.00, tax: 1162.50, net: 4812.50, status: 'Paid', period: 'Aug 01 - Aug 15, 2026' },
+        { id: 'PAY-1002-2', empId: 'EMP-1002', name: 'Laxmi Narayan', role: 'Senior Frontend Developer', dept: 'Engineering', base: 5625.00, bonus: 300, health: 150.00, tax: 1162.50, net: 4612.50, status: 'Paid', period: 'Jul 16 - Jul 31, 2026' },
+        { id: 'PAY-1003-1', empId: 'EMP-1003', name: 'Ankit sethi', role: 'HR Administrator & Director', dept: 'Human Resources', base: 7500.00, bonus: 800, health: 200.00, tax: 1500.00, net: 6600.00, status: 'Paid', period: 'Aug 01 - Aug 15, 2026' },
+        { id: 'PAY-1004-1', empId: 'EMP-1004', name: 'Jitender Saini', role: 'VP of Operations & HR Admin', dept: 'Operations', base: 8125.00, bonus: 1000, health: 220.00, tax: 1700.00, net: 7205.00, status: 'Paid', period: 'Aug 01 - Aug 15, 2026' },
+        { id: 'PAY-1005-1', empId: 'EMP-1005', name: 'Chanchal Saini', role: 'Chief Administrative Officer', dept: 'Finance', base: 8750.00, bonus: 1200, health: 250.00, tax: 1900.00, net: 7800.00, status: 'Paid', period: 'Aug 01 - Aug 15, 2026' },
+      ];
+
+      for (const p of samplePayrolls) {
+        await client.query(
+          `INSERT INTO payroll (id, employee_id, employee_name, role, department, base_salary, bonus, health_deduction, tax_deduction, net_pay, payment_status, pay_period)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          [p.id, p.empId, p.name, p.role, p.dept, p.base, p.bonus, p.health, p.tax, p.net, p.status, p.period]
+        );
+      }
+    }
+
+    // Seed Attendance Records if empty
+    const attCheck = await client.query('SELECT COUNT(*) FROM attendance');
+    if (parseInt(attCheck.rows[0].count, 10) === 0) {
+      const sampleAttendance = [
+        // Today 2026-08-13
+        { id: 'ATT-1001-TODAY', empId: 'EMP-1001', name: 'Sujal kumar', date: '2026-08-13', checkIn: '09:05 AM', checkOut: '06:00 PM', workHours: '8h 55m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: 'ATT-1002-TODAY', empId: 'EMP-1002', name: 'Laxmi Narayan', date: '2026-08-13', checkIn: '09:12 AM', checkOut: '06:15 PM', workHours: '9h 03m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: 'ATT-1003-TODAY', empId: 'EMP-1003', name: 'Ankit sethi', date: '2026-08-13', checkIn: '10:45 AM', checkOut: '06:30 PM', workHours: '7h 45m', status: 'Late', location: 'Delhi NCR (HQ)' },
+        { id: 'ATT-1004-TODAY', empId: 'EMP-1004', name: 'Jitender Saini', date: '2026-08-13', checkIn: '09:30 AM', checkOut: '06:00 PM', workHours: '8h 30m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: 'ATT-1005-TODAY', empId: 'EMP-1005', name: 'Chanchal Saini', date: '2026-08-13', checkIn: '08:55 AM', checkOut: '05:45 PM', workHours: '8h 50m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        // Yesterday 2026-08-12
+        { id: 'ATT-1001-YEST', empId: 'EMP-1001', name: 'Sujal kumar', date: '2026-08-12', checkIn: '09:00 AM', checkOut: '06:00 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: 'ATT-1002-YEST', empId: 'EMP-1002', name: 'Laxmi Narayan', date: '2026-08-12', checkIn: '09:10 AM', checkOut: '06:10 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: 'ATT-1003-YEST', empId: 'EMP-1003', name: 'Ankit sethi', date: '2026-08-12', checkIn: '09:15 AM', checkOut: '06:00 PM', workHours: '8h 45m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: 'ATT-1004-YEST', empId: 'EMP-1004', name: 'Jitender Saini', date: '2026-08-12', checkIn: '09:20 AM', checkOut: '06:00 PM', workHours: '8h 40m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: 'ATT-1005-YEST', empId: 'EMP-1005', name: 'Chanchal Saini', date: '2026-08-12', checkIn: '09:00 AM', checkOut: '06:00 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
+      ];
+
+      for (const a of sampleAttendance) {
+        await client.query(
+          `INSERT INTO attendance (id, employee_id, employee_name, date, check_in, check_out, work_hours, status, location)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [a.id, a.empId, a.name, a.date, a.checkIn, a.checkOut, a.workHours, a.status, a.location]
+        );
+      }
+    }
+
+    console.log('Database schema, payroll & attendance records initialized cleanly!');
   } catch (error) {
     console.error('Error initializing database:', error);
   } finally {

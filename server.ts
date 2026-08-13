@@ -163,7 +163,7 @@ app.put('/api/employees/:id/profile', async (req, res) => {
   try {
     const { id } = req.params;
     const { 
-      newEmpId, name, phone, emergencyPhone, address, maritalStatus, nomineeName, nomineeDob,
+      newEmpId, name, email, status, manager, phone, emergencyPhone, address, maritalStatus, nomineeName, nomineeDob,
       nomineeRelation, highestQualification, medicalHistory, scoreCard, salary, department, designation, role,
       userRole, location, joinDate, newPassword 
     } = req.body;
@@ -175,6 +175,9 @@ app.put('/api/employees/:id/profile', async (req, res) => {
 
     // Sanitize values (convert empty strings to null so COALESCE keeps existing DB values)
     const sName = (name && name.trim()) ? name.trim() : null;
+    const sEmail = (email && email.trim()) ? email.trim() : null;
+    const sStatus = (status && status.trim()) ? status.trim() : null;
+    const sManager = (manager && manager.trim()) ? manager.trim() : null;
     const sPhone = (phone && phone.trim()) ? phone.trim() : null;
     const sEmerg = (emergencyPhone && emergencyPhone.trim()) ? emergencyPhone.trim() : null;
     const sAddr = (address && address.trim()) ? address.trim() : null;
@@ -225,12 +228,15 @@ app.put('/api/employees/:id/profile', async (req, res) => {
         location = COALESCE($16, location),
         join_date = COALESCE($17::date, join_date),
         role = COALESCE($18, role),
-        password_hash = CASE WHEN $19::text IS NOT NULL THEN $19::text ELSE password_hash END
-       WHERE id = $20`,
+        password_hash = CASE WHEN $19::text IS NOT NULL THEN $19::text ELSE password_hash END,
+        email = COALESCE($20, email),
+        status = COALESCE($21, status),
+        manager = COALESCE($22, manager)
+       WHERE id = $23`,
       [
         nextId, sName, sPhone, sEmerg, sAddr, sMarital, sNomName, sNomDob,
         sNomRel, sQual, sMed, sScore, sSalary, sDept, sDesig,
-        sLoc, sJoinDate, sysRole, passwordHashToSet, targetId
+        sLoc, sJoinDate, sysRole, passwordHashToSet, sEmail, sStatus, sManager, (nextId !== targetId ? nextId : targetId)
       ]
     );
 

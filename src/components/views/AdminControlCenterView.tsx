@@ -23,8 +23,10 @@ import {
   Filter,
   Download,
   Plus,
-  LifeBuoy
+  LifeBuoy,
+  Edit3
 } from 'lucide-react';
+import { EmployeeProfileModal } from '../profile/EmployeeProfileModal';
 import { 
   Employee, 
   Candidate, 
@@ -56,6 +58,7 @@ interface AdminControlCenterViewProps {
   onApproveCorrection: (id: string) => void;
   onRejectCorrection: (id: string) => void;
   onUpdateTicketStatus: (id: string, status: 'Open' | 'In Progress' | 'Resolved') => void;
+  onUpdateEmployeeProfile?: (id: string, updatedData: any) => void;
 }
 
 export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
@@ -74,8 +77,10 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
   onRejectLeave,
   onApproveCorrection,
   onRejectCorrection,
-  onUpdateTicketStatus
+  onUpdateTicketStatus,
+  onUpdateEmployeeProfile,
 }) => {
+  const [selectedEmpForEdit, setSelectedEmpForEdit] = useState<Employee | null>(null);
   const [activeTab, setActiveTab] = useState<
     'workforce' | 'approvals' | 'analytics' | 'talent' | 'operations' | 'reports' | 'administration'
   >('workforce');
@@ -300,6 +305,7 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                     <th className="p-3">Status</th>
                     <th className="p-3">Location</th>
                     <th className="p-3">Join Date</th>
+                    <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -328,12 +334,35 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                       </td>
                       <td className="p-3 text-slate-500">{emp.location}</td>
                       <td className="p-3 text-slate-500">{emp.joinDate}</td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => setSelectedEmpForEdit(emp)}
+                          className="px-2.5 py-1 text-[11px] font-bold rounded bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-2xs flex items-center gap-1 ml-auto"
+                        >
+                          <Edit3 className="w-3 h-3" /> Edit Details
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
+
+          {selectedEmpForEdit && (
+            <EmployeeProfileModal
+              employee={selectedEmpForEdit}
+              currentUser={currentUser}
+              initialEditMode={true}
+              onClose={() => setSelectedEmpForEdit(null)}
+              onUpdateProfile={(id, data) => {
+                if (onUpdateEmployeeProfile) {
+                  onUpdateEmployeeProfile(id, data);
+                }
+                setSelectedEmpForEdit((prev) => prev ? { ...prev, ...data } : null);
+              }}
+            />
+          )}
         </div>
       )}
 

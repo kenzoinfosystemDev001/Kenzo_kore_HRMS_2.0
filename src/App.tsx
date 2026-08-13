@@ -493,6 +493,8 @@ export default function App() {
               onRejectLeave={handleRejectLeave}
               onRequestLeave={handleRequestLeave}
               onRequestCorrection={handleRequestCorrection}
+              onClockIn={handleClockIn}
+              onClockOut={handleClockOut}
             />
           )}
 

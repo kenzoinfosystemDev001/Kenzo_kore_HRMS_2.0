@@ -68,6 +68,7 @@ export const DashboardView: React.FC<DashboardViewProps> = (props) => {
         onApproveCorrection={props.onApproveCorrection}
         onRejectCorrection={props.onRejectCorrection}
         onUpdateTicketStatus={props.onUpdateTicketStatus}
+        onUpdateEmployeeProfile={props.onUpdateEmployeeProfile}
       />
     );
   }

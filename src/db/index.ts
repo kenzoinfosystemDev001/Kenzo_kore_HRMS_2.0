@@ -325,22 +325,41 @@ export async function initDb() {
       }
     }
 
+    // Dynamic real-time date helpers
+    const now = new Date();
+    const formatDate = (offsetDays: number) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - offsetDays);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    const realTodayStr = formatDate(0);
+    const realYestStr = formatDate(1);
+    const realDayBeforeStr = formatDate(2);
+
+    // Update existing static seed dates in DB to match real-time date dynamically
+    await client.query("UPDATE attendance SET date = $1 WHERE date = '2026-08-13' OR date = '2026-08-14'", [realTodayStr]);
+    await client.query("UPDATE attendance SET date = $1 WHERE date = '2026-08-12'", [realYestStr]);
+
     // Seed Attendance Records if empty
     const attCheck = await client.query('SELECT COUNT(*) FROM attendance');
     if (parseInt(attCheck.rows[0].count, 10) === 0) {
       const sampleAttendance = [
-        // Today 2026-08-13
-        { id: 'ATT-1001-TODAY', empId: 'EMP-1001', name: 'Sujal kumar', date: '2026-08-13', checkIn: '09:05 AM', checkOut: '06:00 PM', workHours: '8h 55m', status: 'Present', location: 'Delhi NCR (HQ)' },
-        { id: 'ATT-1002-TODAY', empId: 'EMP-1002', name: 'Laxmi Narayan', date: '2026-08-13', checkIn: '09:12 AM', checkOut: '06:15 PM', workHours: '9h 03m', status: 'Present', location: 'Delhi NCR (HQ)' },
-        { id: 'ATT-1003-TODAY', empId: 'EMP-1003', name: 'Ankit sethi', date: '2026-08-13', checkIn: '10:45 AM', checkOut: '06:30 PM', workHours: '7h 45m', status: 'Late', location: 'Delhi NCR (HQ)' },
-        { id: 'ATT-1004-TODAY', empId: 'EMP-1004', name: 'Jitender Saini', date: '2026-08-13', checkIn: '09:30 AM', checkOut: '06:00 PM', workHours: '8h 30m', status: 'Present', location: 'Delhi NCR (HQ)' },
-        { id: 'ATT-1005-TODAY', empId: 'EMP-1005', name: 'Chanchal Saini', date: '2026-08-13', checkIn: '08:55 AM', checkOut: '05:45 PM', workHours: '8h 50m', status: 'Present', location: 'Delhi NCR (HQ)' },
-        // Yesterday 2026-08-12
-        { id: 'ATT-1001-YEST', empId: 'EMP-1001', name: 'Sujal kumar', date: '2026-08-12', checkIn: '09:00 AM', checkOut: '06:00 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
-        { id: 'ATT-1002-YEST', empId: 'EMP-1002', name: 'Laxmi Narayan', date: '2026-08-12', checkIn: '09:10 AM', checkOut: '06:10 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
-        { id: 'ATT-1003-YEST', empId: 'EMP-1003', name: 'Ankit sethi', date: '2026-08-12', checkIn: '09:15 AM', checkOut: '06:00 PM', workHours: '8h 45m', status: 'Present', location: 'Delhi NCR (HQ)' },
-        { id: 'ATT-1004-YEST', empId: 'EMP-1004', name: 'Jitender Saini', date: '2026-08-12', checkIn: '09:20 AM', checkOut: '06:00 PM', workHours: '8h 40m', status: 'Present', location: 'Delhi NCR (HQ)' },
-        { id: 'ATT-1005-YEST', empId: 'EMP-1005', name: 'Chanchal Saini', date: '2026-08-12', checkIn: '09:00 AM', checkOut: '06:00 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        // Today
+        { id: `ATT-1001-${realTodayStr}`, empId: 'EMP-1001', name: 'Sujal kumar', date: realTodayStr, checkIn: '09:05 AM', checkOut: '06:00 PM', workHours: '8h 55m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1002-${realTodayStr}`, empId: 'EMP-1002', name: 'Laxmi Narayan', date: realTodayStr, checkIn: '09:12 AM', checkOut: '06:15 PM', workHours: '9h 03m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1003-${realTodayStr}`, empId: 'EMP-1003', name: 'Ankit sethi', date: realTodayStr, checkIn: '10:45 AM', checkOut: '06:30 PM', workHours: '7h 45m', status: 'Late', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1004-${realTodayStr}`, empId: 'EMP-1004', name: 'Jitender Saini', date: realTodayStr, checkIn: '09:30 AM', checkOut: '06:00 PM', workHours: '8h 30m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1005-${realTodayStr}`, empId: 'EMP-1005', name: 'Chanchal Saini', date: realTodayStr, checkIn: '08:55 AM', checkOut: '05:45 PM', workHours: '8h 50m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        // Yesterday
+        { id: `ATT-1001-${realYestStr}`, empId: 'EMP-1001', name: 'Sujal kumar', date: realYestStr, checkIn: '09:00 AM', checkOut: '06:00 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1002-${realYestStr}`, empId: 'EMP-1002', name: 'Laxmi Narayan', date: realYestStr, checkIn: '09:10 AM', checkOut: '06:10 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1003-${realYestStr}`, empId: 'EMP-1003', name: 'Ankit sethi', date: realYestStr, checkIn: '09:15 AM', checkOut: '06:00 PM', workHours: '8h 45m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1004-${realYestStr}`, empId: 'EMP-1004', name: 'Jitender Saini', date: realYestStr, checkIn: '09:20 AM', checkOut: '06:00 PM', workHours: '8h 40m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1005-${realYestStr}`, empId: 'EMP-1005', name: 'Chanchal Saini', date: realYestStr, checkIn: '09:00 AM', checkOut: '06:00 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
       ];
 
       for (const a of sampleAttendance) {

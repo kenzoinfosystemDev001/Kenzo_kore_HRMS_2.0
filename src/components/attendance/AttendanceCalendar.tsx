@@ -30,8 +30,17 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
   onClockIn,
   onClockOut,
 }) => {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 7, 13)); // Default August 2026
-  const [selectedDateStr, setSelectedDateStr] = useState('2026-08-13');
+  const getTodayStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const todayStr = getTodayStr();
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDateStr, setSelectedDateStr] = useState(todayStr);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(currentUser?.id || 'EMP-1001');
 
   // Real-time Clock
@@ -42,7 +51,6 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const todayStr = '2026-08-13'; // Match current system date
   const hours = nowTime.getHours();
   const isClockInAfter5PM = hours >= 17; // 5:00 PM restriction
 
@@ -162,7 +170,7 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
             </button>
             <button
               onClick={() => {
-                setCurrentDate(new Date(2026, 7, 13));
+                setCurrentDate(new Date());
                 setSelectedDateStr(todayStr);
               }}
               className="px-3 py-1 bg-white text-xs font-bold text-[#0060ac] rounded-lg shadow-2xs"

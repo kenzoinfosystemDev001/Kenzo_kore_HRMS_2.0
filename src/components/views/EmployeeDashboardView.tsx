@@ -120,6 +120,15 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
     return () => clearInterval(timer);
   }, []);
 
+  const getTodayStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+  const todayIsoStr = getTodayStr();
+
   const todayDateStr = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -421,10 +430,10 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900">
                 <Clock className="w-4 h-4 text-blue-600" />
-                <span>Today's Attendance (2026-08-13)</span>
+                <span>Today's Attendance ({todayIsoStr})</span>
               </div>
               {(() => {
-                const todayRec = myAttendance.find(a => a.date === '2026-08-13');
+                const todayRec = myAttendance.find(a => a.date === todayIsoStr);
                 const isIn = Boolean(todayRec?.checkIn);
                 return (
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
@@ -439,7 +448,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
           </div>
 
           {(() => {
-            const todayRec = myAttendance.find(a => a.date === '2026-08-13');
+            const todayRec = myAttendance.find(a => a.date === todayIsoStr);
             const isIn = Boolean(todayRec?.checkIn);
             const isOut = Boolean(todayRec?.checkOut);
             const isAfter5 = new Date().getHours() >= 17;

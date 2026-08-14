@@ -57,9 +57,17 @@ export const LeaveView: React.FC<LeaveViewProps> = ({
   const [noteText, setNoteText] = useState('');
   const [noteAction, setNoteAction] = useState<'approve' | 'reject'>('approve');
 
-  // Admin Attendance Management State (Image 2)
-  const todayStr = '2026-08-13';
-  const [selectedAttDate, setSelectedAttDate] = useState('2026-08-13');
+  // Admin Attendance Management State
+  const getTodayStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const todayStr = getTodayStr();
+  const [selectedAttDate, setSelectedAttDate] = useState(todayStr);
   const isSelectedDateToday = selectedAttDate === todayStr;
   const [attSearch, setAttSearch] = useState('');
   const [attDeptFilter, setAttDeptFilter] = useState('All');

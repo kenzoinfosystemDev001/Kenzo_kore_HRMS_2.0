@@ -64,15 +64,31 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
   const [taxDeduction, setTaxDeduction] = useState(1100);
   const [payPeriod, setPayPeriod] = useState('Aug 16 - Aug 30, 2026');
 
+  const currentEmp = employees.find(e => e.id === currentUser?.id || e.email?.toLowerCase() === currentUser?.email?.toLowerCase());
+
   // Filter payroll records based on role
   const displayPayroll = isAdmin
     ? payroll
-    : payroll.filter(
-        (p) =>
-          p.employeeId === currentUser?.id ||
-          p.employeeName.toLowerCase() === currentUser?.name.toLowerCase() ||
-          p.employeeName.toLowerCase().includes(currentUser?.name.split(' ')[0].toLowerCase() || '')
-      );
+    : payroll.filter((p) => {
+        if (!currentUser) return false;
+        const cId = currentUser.id?.toLowerCase();
+        const cName = currentUser.name?.toLowerCase();
+        const cFirst = cName ? cName.split(' ')[0] : '';
+
+        const eId = currentEmp?.id?.toLowerCase();
+        const eName = currentEmp?.name?.toLowerCase();
+
+        const pEmpId = p.employeeId?.toLowerCase() || '';
+        const pEmpName = p.employeeName?.toLowerCase() || '';
+
+        return (
+          (cId && pEmpId === cId) ||
+          (eId && pEmpId === eId) ||
+          (cName && pEmpName === cName) ||
+          (eName && pEmpName === eName) ||
+          (cFirst && cFirst.length > 2 && pEmpName.includes(cFirst))
+        );
+      });
 
   const mySingleRecord: PayrollRecord | null = displayPayroll[0] || null;
 
@@ -122,6 +138,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
   };
 
   const handleEmployeeAcknowledge = () => {
+    if (!mySingleRecord) return;
     localStorage.setItem(`acknowledged_${mySingleRecord.id}`, 'true');
     if (currentUser?.id) {
       localStorage.setItem(`acknowledged_${currentUser.id}_${mySingleRecord.id}`, 'true');
@@ -245,7 +262,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
             <p className="text-xs text-slate-600 mt-0.5">
               {isAdmin
                 ? `${processingCount} payments processing`
-                : `Status: ${mySingleRecord.paymentStatus}`}
+                : `Status: ${mySingleRecord ? mySingleRecord.paymentStatus : 'Not Processed'}`}
             </p>
           </div>
 

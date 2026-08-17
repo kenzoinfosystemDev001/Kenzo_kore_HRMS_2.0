@@ -19,7 +19,8 @@ import {
   Sparkles,
   Calendar,
   UserCheck,
-  Building
+  Building,
+  Trash2
 } from 'lucide-react';
 import { PayrollRecord, UserAccount, Employee } from '../../types';
 
@@ -30,6 +31,7 @@ interface PayrollViewProps {
   onUpdatePayrollStatus: (id: string, status: 'Paid' | 'Processing' | 'Hold') => void;
   onRunPayrollBatch: () => void;
   onCreatePayroll?: (data: any) => void;
+  onDeletePayroll?: (id: string) => void;
 }
 
 export const PayrollView: React.FC<PayrollViewProps> = ({
@@ -39,6 +41,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
   onUpdatePayrollStatus,
   onRunPayrollBatch,
   onCreatePayroll,
+  onDeletePayroll,
 }) => {
   const isAdmin = currentUser?.role === 'Admin';
   
@@ -371,6 +374,19 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
                             className="px-2.5 py-1 text-[11px] font-semibold rounded bg-[#1a2b3c] text-white hover:bg-[#041627]"
                           >
                             Mark Paid
+                          </button>
+                        )}
+                        {isAdmin && onDeletePayroll && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Are you sure you want to permanently delete the payroll record for ${p.employeeName} (${p.payPeriod})? This will remove it permanently from PostgreSQL DB.`)) {
+                                onDeletePayroll(p.id);
+                              }
+                            }}
+                            className="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-lg transition-all border border-red-200"
+                            title="Delete Payroll Slip from Database"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>

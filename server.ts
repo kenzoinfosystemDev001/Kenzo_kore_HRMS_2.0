@@ -442,6 +442,17 @@ app.put('/api/payroll/:id', async (req, res) => {
   }
 });
 
+app.delete('/api/payroll/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM payroll WHERE id = $1', [id]);
+    res.json({ message: 'Payroll record permanently deleted from database', id });
+  } catch (error: any) {
+    console.error('Delete payroll error:', error);
+    res.status(500).json({ error: 'Failed to delete payroll record' });
+  }
+});
+
 app.post('/api/payroll/batch', async (_req, res) => {
   try {
     await pool.query("UPDATE payroll SET payment_status = 'Paid'");

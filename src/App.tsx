@@ -331,6 +331,20 @@ export default function App() {
     }
   };
 
+  const handleDeletePayroll = async (id: string) => {
+    try {
+      const res = await fetch(`/api/payroll/${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setPayroll(prev => prev.filter(p => p.id !== id));
+        await fetchAllData();
+      }
+    } catch (error) {
+      console.error('Error deleting payroll:', error);
+    }
+  };
+
   const handleRunPayrollBatch = async () => {
     try {
       const res = await fetch('/api/payroll/batch', {
@@ -511,6 +525,7 @@ export default function App() {
               onUpdatePayrollStatus={handleUpdatePayrollStatus}
               onRunPayrollBatch={handleRunPayrollBatch}
               onCreatePayroll={handleCreatePayroll}
+              onDeletePayroll={handleDeletePayroll}
             />
           )}
 

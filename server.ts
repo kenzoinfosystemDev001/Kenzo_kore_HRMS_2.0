@@ -715,12 +715,64 @@ app.get('/api/attendance', async (_req, res) => {
   }
 });
 
+function getISTTimeString(d: Date = new Date()): string {
+  return d.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata'
+  });
+}
+
+function calculateRealWorkHours(checkInStr: string, checkOutStr?: string): string {
+  try {
+    const parseTimeToMinutes = (timeStr: string) => {
+      const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return 0;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3].toUpperCase();
+      if (ampm === 'PM' && hours < 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    };
+
+    const inMinutes = parseTimeToMinutes(checkInStr);
+    let outMinutes = 0;
+    if (checkOutStr) {
+      outMinutes = parseTimeToMinutes(checkOutStr);
+    } else {
+      outMinutes = parseTimeToMinutes(getISTTimeString());
+    }
+
+    let diff = outMinutes - inMinutes;
+    if (diff < 0) diff += 24 * 60; // Overnight shift support
+
+    const h = Math.floor(diff / 60);
+    const m = diff % 60;
+    return `${h}h ${m}m`;
+  } catch (err) {
+    return '0h 0m';
+  }
+}
+
 app.post('/api/attendance/clock-in', async (req, res) => {
   try {
     const { employeeId, employeeName, location } = req.body;
     const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
+    const istTimeStr = getISTTimeString(now);
+    
+    // Extract IST hours & minutes for late & cutoff rules
+    const istMatch = istTimeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    let hours = now.getHours();
+    let minutes = now.getMinutes();
+    if (istMatch) {
+      hours = parseInt(istMatch[1], 10);
+      minutes = parseInt(istMatch[2], 10);
+      if (istMatch[3].toUpperCase() === 'PM' && hours < 12) hours += 12;
+      if (istMatch[3].toUpperCase() === 'AM' && hours === 12) hours = 0;
+    }
+
     const today = now.toISOString().split('T')[0];
 
     // Rule: No clock-in after 5:00 PM (17:00)
@@ -743,23 +795,22 @@ app.post('/api/attendance/clock-in', async (req, res) => {
         date: today,
         checkIn: r.check_in,
         checkOut: r.check_out,
-        workHours: r.work_hours || '0h 0m',
+        workHours: r.work_hours || calculateRealWorkHours(r.check_in, r.check_out),
         status: r.status,
         location: r.location,
       });
     }
 
-    // Rule: After 12:30 PM (12:30), mark as Late
-    const isLate = hours > 12 || (hours === 12 && minutes > 30);
+    // Rule: After 10:30 AM, mark as Late
+    const isLate = hours > 10 || (hours === 10 && minutes > 30);
     const status = isLate ? 'Late' : 'Present';
 
-    const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
     const newId = `ATT-${Date.now()}`;
 
     await pool.query(
-      `INSERT INTO attendance (id, employee_id, employee_name, date, check_in, status, location)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [newId, employeeId, employeeName, today, timeString, status, location || 'Delhi NCR (HQ)']
+      `INSERT INTO attendance (id, employee_id, employee_name, date, check_in, work_hours, status, location)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [newId, employeeId, employeeName, today, istTimeStr, '0h 0m', status, location || 'Delhi NCR (HQ)']
     );
 
     res.status(201).json({
@@ -767,7 +818,7 @@ app.post('/api/attendance/clock-in', async (req, res) => {
       employeeId,
       employeeName,
       date: today,
-      checkIn: timeString,
+      checkIn: istTimeStr,
       checkOut: null,
       workHours: '0h 0m',
       status,
@@ -784,7 +835,7 @@ app.post('/api/attendance/clock-out', async (req, res) => {
     const { employeeId } = req.body;
     const now = new Date();
     const today = now.toISOString().split('T')[0];
-    const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const istTimeStr = getISTTimeString(now);
 
     const existing = await pool.query(
       'SELECT * FROM attendance WHERE employee_id = $1 AND date = $2',
@@ -797,14 +848,11 @@ app.post('/api/attendance/clock-out', async (req, res) => {
 
     const row = existing.rows[0];
     const checkInStr = row.check_in || '09:00 AM';
-
-    // Calculate approximate work hours
-    const calcHours = Math.max(1, Math.min(10, Math.floor(Math.random() * 2) + 8));
-    const workHoursStr = `${calcHours}h ${Math.floor(Math.random() * 45)}m`;
+    const workHoursStr = calculateRealWorkHours(checkInStr, istTimeStr);
 
     await pool.query(
       'UPDATE attendance SET check_out = $1, work_hours = $2 WHERE id = $3',
-      [timeString, workHoursStr, row.id]
+      [istTimeStr, workHoursStr, row.id]
     );
 
     res.json({
@@ -813,7 +861,7 @@ app.post('/api/attendance/clock-out', async (req, res) => {
       employeeName: row.employee_name,
       date: today,
       checkIn: checkInStr,
-      checkOut: timeString,
+      checkOut: istTimeStr,
       workHours: workHoursStr,
       status: row.status,
       location: row.location,

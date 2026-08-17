@@ -71,21 +71,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
           p.employeeName.toLowerCase().includes(currentUser?.name.split(' ')[0].toLowerCase() || '')
       );
 
-  // Fallback for employee if not found
-  const mySingleRecord: PayrollRecord = displayPayroll[0] || {
-    id: `PAY-${currentUser?.id || '1001'}`,
-    employeeId: currentUser?.id || 'EMP-1001',
-    employeeName: currentUser?.name || 'Sujal kumar',
-    role: currentUser?.designation || 'Software Engineer',
-    department: currentUser?.department || 'Engineering',
-    baseSalary: currentUser?.salary ? Math.round(currentUser.salary / 24) : 5208.33,
-    bonus: 500,
-    healthDeduction: 237,
-    taxDeduction: 1000,
-    netPay: 4062.50,
-    paymentStatus: 'Processing',
-    payPeriod: 'Aug 01 - Aug 15, 2026',
-  };
+  const mySingleRecord: PayrollRecord | null = displayPayroll[0] || null;
 
   // Trigger Automatic Real-Time Pop-Up for Employee if a payroll is ready/processing AND not acknowledged yet
   useEffect(() => {
@@ -96,9 +82,9 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
         setIsEmployeeDisbursementPopupOpen(true);
       }
     }
-  }, [isAdmin, mySingleRecord.id, currentUser?.id]);
+  }, [isAdmin, mySingleRecord?.id, currentUser?.id]);
 
-  const recordsToRender = displayPayroll.length > 0 ? displayPayroll : [mySingleRecord];
+  const recordsToRender = displayPayroll;
 
   const totalNet = recordsToRender.reduce((acc, c) => acc + c.netPay, 0);
   const totalTaxes = recordsToRender.reduce((acc, c) => acc + c.taxDeduction + c.healthDeduction, 0);
@@ -325,65 +311,73 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e2e8f0] text-xs">
-              {recordsToRender.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3 px-4">
-                    <p className="font-bold text-[#1a2b3c]">{p.employeeName}</p>
-                    <p className="text-[11px] text-slate-400">{p.role} • {p.department}</p>
-                  </td>
-
-                  <td className="py-3 px-4 font-medium text-slate-700">
-                    ₹{p.baseSalary.toLocaleString()}
-                  </td>
-
-                  <td className="py-3 px-4 font-semibold text-emerald-600">
-                    +₹{p.bonus.toLocaleString()}
-                  </td>
-
-                  <td className="py-3 px-4 text-red-600 font-medium">
-                    -₹{(p.healthDeduction + p.taxDeduction).toLocaleString()}
-                  </td>
-
-                  <td className="py-3 px-4 font-bold text-[#1a2b3c] text-sm">
-                    ₹{p.netPay.toLocaleString()}
-                  </td>
-
-                  <td className="py-3 px-4">
-                    {p.paymentStatus === 'Paid' ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1 w-max">
-                        <CheckCircle2 className="w-3 h-3" /> Paid
-                      </span>
-                    ) : p.paymentStatus === 'Processing' ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 w-max">
-                        <Clock className="w-3 h-3" /> Processing
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200 w-max">
-                        On Hold
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="py-3 px-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => setSelectedSlip(p)}
-                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-[#0060ac] text-white hover:bg-[#004e8c] flex items-center gap-1"
-                      >
-                        <Download className="w-3.5 h-3.5" /> Download Payslip
-                      </button>
-                      {isAdmin && p.paymentStatus === 'Processing' && (
-                        <button
-                          onClick={() => onUpdatePayrollStatus(p.id, 'Paid')}
-                          className="px-2.5 py-1 text-[11px] font-semibold rounded bg-[#1a2b3c] text-white hover:bg-[#041627]"
-                        >
-                          Mark Paid
-                        </button>
-                      )}
-                    </div>
+              {recordsToRender.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-slate-500 font-semibold">
+                    No payroll records found for this period. {isAdmin ? 'Click "+ Process New Employee Payroll" to disburse salary.' : ''}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                recordsToRender.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3 px-4">
+                      <p className="font-bold text-[#1a2b3c]">{p.employeeName}</p>
+                      <p className="text-[11px] text-slate-400">{p.role} • {p.department}</p>
+                    </td>
+
+                    <td className="py-3 px-4 font-medium text-slate-700">
+                      ₹{p.baseSalary.toLocaleString()}
+                    </td>
+
+                    <td className="py-3 px-4 font-semibold text-emerald-600">
+                      +₹{p.bonus.toLocaleString()}
+                    </td>
+
+                    <td className="py-3 px-4 text-red-600 font-medium">
+                      -₹{(p.healthDeduction + p.taxDeduction).toLocaleString()}
+                    </td>
+
+                    <td className="py-3 px-4 font-bold text-[#1a2b3c] text-sm">
+                      ₹{p.netPay.toLocaleString()}
+                    </td>
+
+                    <td className="py-3 px-4">
+                      {p.paymentStatus === 'Paid' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1 w-max">
+                          <CheckCircle2 className="w-3 h-3" /> Paid
+                        </span>
+                      ) : p.paymentStatus === 'Processing' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 w-max">
+                          <Clock className="w-3 h-3" /> Processing
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200 w-max">
+                          On Hold
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setSelectedSlip(p)}
+                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-[#0060ac] text-white hover:bg-[#004e8c] flex items-center gap-1"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Download Payslip
+                        </button>
+                        {isAdmin && p.paymentStatus === 'Processing' && (
+                          <button
+                            onClick={() => onUpdatePayrollStatus(p.id, 'Paid')}
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded bg-[#1a2b3c] text-white hover:bg-[#041627]"
+                          >
+                            Mark Paid
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -508,7 +502,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
       {/* ---------------------------------------------------- */}
       {/* MODAL 2: AUTOMATIC EMPLOYEE DISBURSEMENT POP-UP MODAL */}
       {/* ---------------------------------------------------- */}
-      {!isAdmin && isEmployeeDisbursementPopupOpen && (
+      {!isAdmin && isEmployeeDisbursementPopupOpen && mySingleRecord && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
             <div className="text-center space-y-2">

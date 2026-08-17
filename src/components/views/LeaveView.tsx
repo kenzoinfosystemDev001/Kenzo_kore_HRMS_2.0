@@ -123,25 +123,40 @@ export const LeaveView: React.FC<LeaveViewProps> = ({
   const lateLog = myAttendanceLogs.find(a => a.status === 'Late');
   const latestLateDateStr = lateLog ? lateLog.date : (empLateCount > 0 ? 'Aug 10' : 'None');
 
-  // Admin Attendance Dashboard Computations (Image 2)
-  const recordsForDate = attendanceRecords.filter(a => a.date === selectedAttDate);
+  // Admin Attendance Dashboard Computations (1-to-1 Roster Mapping)
   const activeRoster = employees.filter(e => e.status === 'Active' || e.status === 'Remote');
   const totalRosterCount = activeRoster.length || 5;
 
-  const presentCount = recordsForDate.filter(a => a.status === 'Present').length;
-  const lateCount = recordsForDate.filter(a => a.status === 'Late').length;
-  const halfDayCount = recordsForDate.filter(a => a.status === 'Half Day').length;
-  const absentCount = Math.max(0, totalRosterCount - (presentCount + lateCount + halfDayCount));
-  const attendanceRatePct = Math.round(((presentCount + lateCount + halfDayCount) / totalRosterCount) * 100) || 0;
-
   const rosterWithAttendance = activeRoster.map(emp => {
-    const record = recordsForDate.find(r => r.employeeId === emp.id || r.employeeName.toLowerCase() === emp.name.toLowerCase());
+    // Find single latest record for this employee on selectedAttDate
+    const record = attendanceRecords.find(a => 
+      (a.employeeId === emp.id || a.employeeName.toLowerCase() === emp.name.toLowerCase()) && 
+      a.date === selectedAttDate
+    );
+
+    let status = 'Absent';
+    if (record) {
+      status = record.status || 'Present';
+    } else if (selectedAttDate > todayStr) {
+      status = 'Unmarked';
+    }
+
     return {
       emp,
       record: record || null,
-      status: record ? record.status : 'Absent',
+      status,
     };
   });
+
+  const presentCount = rosterWithAttendance.filter(item => item.status === 'Present').length;
+  const lateCount = rosterWithAttendance.filter(item => item.status === 'Late').length;
+  const halfDayCount = rosterWithAttendance.filter(item => item.status === 'Half Day').length;
+  const absentCount = rosterWithAttendance.filter(item => item.status === 'Absent').length;
+
+  const activeCount = presentCount + lateCount + halfDayCount;
+  const attendanceRatePct = totalRosterCount > 0 
+    ? Math.min(100, Math.round((activeCount / totalRosterCount) * 100))
+    : 0;
 
   const filteredAdminAttendance = rosterWithAttendance.filter(item => {
     const matchesSearch = item.emp.name.toLowerCase().includes(attSearch.toLowerCase()) ||

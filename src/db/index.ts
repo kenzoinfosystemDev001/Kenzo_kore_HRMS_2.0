@@ -340,29 +340,38 @@ export async function initDb() {
     const realYestStr = formatDate(1);
     const realDayBeforeStr = formatDate(2);
 
-    // Update existing static seed dates in DB to match real-time date dynamically
-    await client.query("UPDATE attendance SET date = $1 WHERE date = '2026-08-13' OR date = '2026-08-14'", [realTodayStr]);
-    await client.query("UPDATE attendance SET date = $1 WHERE date = '2026-08-12'", [realYestStr]);
+    // 1. DEDUPLICATE EXISTING ATTENDANCE ROWS (Keep max 1 record per employee per date)
+    await client.query(`
+      DELETE FROM attendance a 
+      WHERE a.ctid NOT IN (
+        SELECT min(b.ctid) 
+        FROM attendance b 
+        GROUP BY b.employee_id, b.date
+      );
+    `);
 
-    // Seed Attendance Records if empty
+    // 2. NO AUTO CLOCK-IN FOR TODAY: Remove any auto clock-ins inserted for today so employees clock in manually
+    await client.query("DELETE FROM attendance WHERE date = $1", [realTodayStr]);
+
+    // 3. SEED HISTORICAL ATTENDANCE FOR PAST DAYS ONLY (For analytics & history)
     const attCheck = await client.query('SELECT COUNT(*) FROM attendance');
     if (parseInt(attCheck.rows[0].count, 10) === 0) {
-      const sampleAttendance = [
-        // Today
-        { id: `ATT-1001-${realTodayStr}`, empId: 'EMP-1001', name: 'Sujal kumar', date: realTodayStr, checkIn: '09:05 AM', checkOut: '06:00 PM', workHours: '8h 55m', status: 'Present', location: 'Delhi NCR (HQ)' },
-        { id: `ATT-1002-${realTodayStr}`, empId: 'EMP-1002', name: 'Laxmi Narayan', date: realTodayStr, checkIn: '09:12 AM', checkOut: '06:15 PM', workHours: '9h 03m', status: 'Present', location: 'Delhi NCR (HQ)' },
-        { id: `ATT-1003-${realTodayStr}`, empId: 'EMP-1003', name: 'Ankit sethi', date: realTodayStr, checkIn: '10:45 AM', checkOut: '06:30 PM', workHours: '7h 45m', status: 'Late', location: 'Delhi NCR (HQ)' },
-        { id: `ATT-1004-${realTodayStr}`, empId: 'EMP-1004', name: 'Jitender Saini', date: realTodayStr, checkIn: '09:30 AM', checkOut: '06:00 PM', workHours: '8h 30m', status: 'Present', location: 'Delhi NCR (HQ)' },
-        { id: `ATT-1005-${realTodayStr}`, empId: 'EMP-1005', name: 'Chanchal Saini', date: realTodayStr, checkIn: '08:55 AM', checkOut: '05:45 PM', workHours: '8h 50m', status: 'Present', location: 'Delhi NCR (HQ)' },
+      const sampleHistoricalAttendance = [
         // Yesterday
         { id: `ATT-1001-${realYestStr}`, empId: 'EMP-1001', name: 'Sujal kumar', date: realYestStr, checkIn: '09:00 AM', checkOut: '06:00 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
         { id: `ATT-1002-${realYestStr}`, empId: 'EMP-1002', name: 'Laxmi Narayan', date: realYestStr, checkIn: '09:10 AM', checkOut: '06:10 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
         { id: `ATT-1003-${realYestStr}`, empId: 'EMP-1003', name: 'Ankit sethi', date: realYestStr, checkIn: '09:15 AM', checkOut: '06:00 PM', workHours: '8h 45m', status: 'Present', location: 'Delhi NCR (HQ)' },
         { id: `ATT-1004-${realYestStr}`, empId: 'EMP-1004', name: 'Jitender Saini', date: realYestStr, checkIn: '09:20 AM', checkOut: '06:00 PM', workHours: '8h 40m', status: 'Present', location: 'Delhi NCR (HQ)' },
         { id: `ATT-1005-${realYestStr}`, empId: 'EMP-1005', name: 'Chanchal Saini', date: realYestStr, checkIn: '09:00 AM', checkOut: '06:00 PM', workHours: '9h 00m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        // Day Before Yesterday
+        { id: `ATT-1001-${realDayBeforeStr}`, empId: 'EMP-1001', name: 'Sujal kumar', date: realDayBeforeStr, checkIn: '09:05 AM', checkOut: '06:00 PM', workHours: '8h 55m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1002-${realDayBeforeStr}`, empId: 'EMP-1002', name: 'Laxmi Narayan', date: realDayBeforeStr, checkIn: '09:12 AM', checkOut: '06:15 PM', workHours: '9h 03m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1003-${realDayBeforeStr}`, empId: 'EMP-1003', name: 'Ankit sethi', date: realDayBeforeStr, checkIn: '10:45 AM', checkOut: '06:30 PM', workHours: '7h 45m', status: 'Late', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1004-${realDayBeforeStr}`, empId: 'EMP-1004', name: 'Jitender Saini', date: realDayBeforeStr, checkIn: '09:30 AM', checkOut: '06:00 PM', workHours: '8h 30m', status: 'Present', location: 'Delhi NCR (HQ)' },
+        { id: `ATT-1005-${realDayBeforeStr}`, empId: 'EMP-1005', name: 'Chanchal Saini', date: realDayBeforeStr, checkIn: '08:55 AM', checkOut: '05:45 PM', workHours: '8h 50m', status: 'Present', location: 'Delhi NCR (HQ)' },
       ];
 
-      for (const a of sampleAttendance) {
+      for (const a of sampleHistoricalAttendance) {
         await client.query(
           `INSERT INTO attendance (id, employee_id, employee_name, date, check_in, check_out, work_hours, status, location)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,

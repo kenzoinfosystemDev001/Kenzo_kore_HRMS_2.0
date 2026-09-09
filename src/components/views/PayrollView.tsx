@@ -23,6 +23,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { PayrollRecord, UserAccount, Employee } from '../../types';
+import { downloadPayslipPDF } from '../../utils/pdfGenerator';
 
 interface PayrollViewProps {
   payroll: PayrollRecord[];
@@ -380,7 +381,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => setSelectedSlip(p)}
+                          onClick={() => downloadPayslipPDF(p)}
                           className="px-3 py-1.5 text-xs font-bold rounded-lg bg-[#0060ac] text-white hover:bg-[#004e8c] flex items-center gap-1"
                         >
                           <Download className="w-3.5 h-3.5" /> Download Payslip
@@ -587,7 +588,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
               </button>
 
               <button
-                onClick={() => setSelectedSlip(mySingleRecord)}
+                onClick={() => downloadPayslipPDF(mySingleRecord)}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
               >
                 <Download className="w-4 h-4 text-[#0060ac]" />
@@ -660,7 +661,7 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
               </button>
               <button 
                 onClick={() => {
-                  alert('Payslip PDF downloaded to your system.');
+                  downloadPayslipPDF(selectedSlip);
                   setSelectedSlip(null);
                 }}
                 className="px-4 py-2 bg-[#0060ac] text-white rounded-lg text-xs font-bold hover:bg-[#004e8c] flex items-center gap-1.5"

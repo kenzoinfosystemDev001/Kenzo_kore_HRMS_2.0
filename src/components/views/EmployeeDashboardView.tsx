@@ -39,6 +39,7 @@ import {
   Announcement,
   NotificationItem
 } from '../../types';
+import { downloadPayslipPDF } from '../../utils/pdfGenerator';
 import { EmployeeProfileModal } from '../profile/EmployeeProfileModal';
 
 interface EmployeeDashboardViewProps {
@@ -560,8 +561,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
           {latestPayrollRecord ? (
             <button
               onClick={() => {
-                setSelectedPayslip(latestPayrollRecord);
-                setIsPayslipModalOpen(true);
+                downloadPayslipPDF(latestPayrollRecord);
               }}
               className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
             >
@@ -1067,7 +1067,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    alert(`Payslip PDF for ${activePayslip.payPeriod} downloaded successfully.`);
+                    downloadPayslipPDF(activePayslip);
                     setIsPayslipModalOpen(false);
                   }}
                   className="px-5 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-700 flex items-center gap-1.5 shadow-xs"

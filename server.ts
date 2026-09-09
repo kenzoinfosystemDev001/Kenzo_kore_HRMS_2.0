@@ -1,16 +1,26 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
+import { v2 as cloudinary } from 'cloudinary';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { pool, initDb, DEFAULT_EMPLOYEE_DOCUMENTS } from './src/db/index';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME || 'rhyn1n8t',
+  api_key: process.env.CLOUD_API_KEY || process.env.CLOUDINARY_API_KEY || '873866315239186',
+  api_secret: process.env.CLOUD_API_SECRET || process.env.CLOUDINARY_API_SECRET || 'a8-pV-PzjFevggSLDwVylqYhNFE',
+  secure: true
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Initialize Database on server start
 initDb().catch((err) => {
@@ -20,6 +30,55 @@ initDb().catch((err) => {
 // Health check endpoint
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Cloudinary Document Upload Endpoint
+app.post('/api/upload-document', async (req, res) => {
+  try {
+    const { fileData, fileName } = req.body;
+    if (!fileData) {
+      return res.status(400).json({ error: 'fileData base64 string is required' });
+    }
+
+    const cleanFileName = (fileName || 'doc').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const uploadResult = await cloudinary.uploader.upload(fileData, {
+      folder: 'hrms_employee_documents',
+      resource_type: 'auto',
+      public_id: `${Date.now()}_${cleanFileName}`
+    });
+
+    res.json({
+      url: uploadResult.secure_url,
+      publicId: uploadResult.public_id,
+      bytes: uploadResult.bytes,
+      format: uploadResult.format
+    });
+  } catch (error: any) {
+    console.error('Cloudinary upload error:', error);
+    res.status(500).json({ error: error?.message || 'Failed to upload document to Cloudinary' });
+  }
+});
+
+// Cloudinary Document Delete Endpoint
+app.post('/api/delete-document', async (req, res) => {
+  try {
+    const { publicId } = req.body;
+    if (!publicId) {
+      return res.status(400).json({ error: 'publicId is required' });
+    }
+
+    try {
+      await cloudinary.uploader.destroy(publicId, { resource_type: 'image', invalidate: true });
+    } catch {}
+    try {
+      await cloudinary.uploader.destroy(publicId, { resource_type: 'raw', invalidate: true });
+    } catch {}
+
+    res.json({ success: true, message: 'Document deleted from Cloudinary' });
+  } catch (error: any) {
+    console.error('Cloudinary delete error:', error);
+    res.status(500).json({ error: error?.message || 'Failed to delete document from Cloudinary' });
+  }
 });
 
 // Helper: map DB user row to user profile object

@@ -22,9 +22,14 @@ import {
   Calendar,
   Building,
   DollarSign,
-  Briefcase
+  Briefcase,
+  Eye,
+  Trash2,
+  Loader2,
+  ExternalLink
 } from 'lucide-react';
 import { Employee, EmployeeDocument, UserAccount, Dependent, Nominee, ParentInfo } from '../../types';
+import { uploadFileToCloudinary, deleteFileFromCloudinary } from '../../utils/cloudinary';
 
 interface EmployeeProfileModalProps {
   employee: Employee;
@@ -173,29 +178,103 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     }
   };
 
-  const handleFileUpload = (docId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleFileUpload = async (docId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const updatedDocs = documents.map((doc) => {
-      if (doc.id === docId) {
-        return {
-          ...doc,
-          status: 'Uploaded' as const,
-          fileName: file.name,
-          uploadedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          fileSize: `${(file.size / 1024).toFixed(0)} KB`,
-        };
-      }
-      return doc;
-    });
-
-    setDocuments(updatedDocs);
-    if (onUpdateDocuments) {
-      onUpdateDocuments(employee.id, updatedDocs);
+    if (!canEdit) {
+      alert('You do not have permission to upload documents for this profile.');
+      return;
     }
-    setSuccessMsg('Document uploaded successfully!');
-    setTimeout(() => setSuccessMsg(null), 2500);
+
+    setUploadingId(docId);
+    try {
+      const uploadResult = await uploadFileToCloudinary(file);
+
+      const docToReplace = documents.find((d) => d.id === docId);
+      if (docToReplace?.publicId) {
+        deleteFileFromCloudinary(docToReplace.publicId).catch(() => {});
+      }
+
+      const updatedDocs: EmployeeDocument[] = documents.map((doc) => {
+        if (doc.id === docId) {
+          return {
+            ...doc,
+            status: 'Uploaded' as const,
+            fileName: file.name,
+            uploadedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            fileSize: `${(file.size / 1024).toFixed(0)} KB`,
+            fileUrl: uploadResult.url,
+            publicId: uploadResult.publicId,
+          };
+        }
+        return doc;
+      });
+
+      setDocuments(updatedDocs);
+      if (onUpdateDocuments) {
+        await onUpdateDocuments(employee.id, updatedDocs);
+      }
+      setSuccessMsg(`Document "${file.name}" uploaded to Cloudinary successfully!`);
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (error: any) {
+      console.error('Cloudinary upload error:', error);
+      alert(`Failed to upload document to Cloudinary: ${error?.message || 'Unknown error'}`);
+    } finally {
+      setUploadingId(null);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    const docToDelete = documents.find((d) => d.id === docId);
+    if (!docToDelete || docToDelete.status !== 'Uploaded') return;
+
+    if (!canEdit) {
+      alert('You do not have permission to delete documents for this profile.');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete "${docToDelete.fileName || docToDelete.name}"? This action will remove it permanently from Cloudinary and database.`)) {
+      return;
+    }
+
+    setDeletingId(docId);
+    try {
+      if (docToDelete.publicId) {
+        await deleteFileFromCloudinary(docToDelete.publicId);
+      }
+
+      const updatedDocs: EmployeeDocument[] = documents.map((doc) => {
+        if (doc.id === docId) {
+          return {
+            ...doc,
+            status: 'Pending' as const,
+            fileName: undefined,
+            uploadedAt: undefined,
+            fileSize: undefined,
+            fileUrl: undefined,
+            publicId: undefined,
+          };
+        }
+        return doc;
+      });
+
+      setDocuments(updatedDocs);
+      if (onUpdateDocuments) {
+        await onUpdateDocuments(employee.id, updatedDocs);
+      }
+      setSuccessMsg('Document deleted successfully from Cloudinary.');
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (error: any) {
+      console.error('Delete document error:', error);
+      alert(`Failed to delete document: ${error?.message || 'Unknown error'}`);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const mandatoryCount = documents.filter((d) => d.isMandatory).length;
@@ -996,16 +1075,61 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                         {doc.status}
                       </span>
 
+                      {/* View Document Button */}
+                      {doc.status === 'Uploaded' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (doc.fileUrl) {
+                              window.open(doc.fileUrl, '_blank', 'noopener,noreferrer');
+                            } else {
+                              alert(`Document file "${doc.fileName || doc.name}" was uploaded without a remote URL. Please re-upload to store on Cloudinary.`);
+                            }
+                          }}
+                          className="px-2.5 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 text-[11px] font-bold rounded-lg border border-sky-200 flex items-center gap-1 transition-all"
+                          title="View / Download Document"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>View</span>
+                        </button>
+                      )}
+
+                      {/* Upload / Re-upload Button (Only if canEdit: employee for self, admin for everyone) */}
                       {canEdit && (
-                        <label className="cursor-pointer px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all">
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>{doc.status === 'Uploaded' ? 'Re-upload' : 'Upload'}</span>
+                        <label className={`cursor-pointer px-3 py-1.5 ${
+                          uploadingId === doc.id ? 'bg-slate-400' : 'bg-slate-800 hover:bg-slate-900'
+                        } text-white text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all`}>
+                          {uploadingId === doc.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Upload className="w-3.5 h-3.5" />
+                          )}
+                          <span>{uploadingId === doc.id ? 'Uploading...' : doc.status === 'Uploaded' ? 'Re-upload' : 'Upload'}</span>
                           <input
                             type="file"
                             className="hidden"
+                            disabled={uploadingId === doc.id || deletingId === doc.id}
                             onChange={(e) => handleFileUpload(doc.id, e)}
                           />
                         </label>
+                      )}
+
+                      {/* Delete Document Button (Only if canEdit and doc is Uploaded) */}
+                      {canEdit && doc.status === 'Uploaded' && (
+                        <button
+                          type="button"
+                          disabled={deletingId === doc.id || uploadingId === doc.id}
+                          onClick={() => handleDeleteDocument(doc.id)}
+                          className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-bold rounded-lg border border-red-200 flex items-center gap-1 transition-all disabled:opacity-50"
+                          title="Delete Document from Cloudinary"
+                        >
+                          {deletingId === doc.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-red-600" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                          <span>{deletingId === doc.id ? 'Deleting...' : 'Delete'}</span>
+                        </button>
                       )}
                     </div>
                   </div>

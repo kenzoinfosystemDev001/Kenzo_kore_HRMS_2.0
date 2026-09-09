@@ -34,6 +34,8 @@ export interface EmployeeDocument {
   fileName?: string;
   uploadedAt?: string;
   fileSize?: string;
+  fileUrl?: string;
+  publicId?: string;
 }
 
 export interface Dependent {

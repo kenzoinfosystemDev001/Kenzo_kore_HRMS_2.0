@@ -36,6 +36,27 @@ export interface EmployeeDocument {
   fileSize?: string;
 }
 
+export interface Dependent {
+  id: string;
+  name: string;
+  relation: string;
+  dobOrAge?: string;
+}
+
+export interface Nominee {
+  name: string;
+  relation: string;
+  dobOrAge?: string;
+  contactPhone?: string;
+}
+
+export interface ParentInfo {
+  parentType: 'Father' | 'Mother' | 'Other';
+  name: string;
+  contactPhone: string;
+  age: string | number;
+}
+
 export interface UserAccount {
   id: string;
   name: string;
@@ -54,6 +75,11 @@ export interface UserAccount {
   nomineeName?: string;
   nomineeDob?: string;
   nomineeRelation?: string;
+  dependents?: Dependent[];
+  nominee?: Nominee;
+  parentsInfo?: ParentInfo[];
+  workStatus?: 'Internship' | 'Probation' | 'Full-time';
+  workStatusDurationMonths?: number | string;
   highestQualification?: string;
   medicalHistory?: string;
   scoreCard?: number;
@@ -68,7 +94,7 @@ export interface UserAccount {
   documents?: EmployeeDocument[];
 }
 
-export type EmploymentStatus = 'Active' | 'On Leave' | 'Pending' | 'Remote' | 'Contractor' | 'Terminated';
+export type EmploymentStatus = 'Active' | 'In-Active' | 'Resigned' | 'On Leave' | 'Pending' | 'Remote' | 'Contractor' | 'Terminated';
 
 export type Department = 'Engineering' | 'Product & Design' | 'Human Resources' | 'Sales & Marketing' | 'Finance' | 'Operations';
 
@@ -90,6 +116,11 @@ export interface Employee {
   nomineeName?: string;
   nomineeDob?: string;
   nomineeRelation?: string;
+  dependents?: Dependent[];
+  nominee?: Nominee;
+  parentsInfo?: ParentInfo[];
+  workStatus?: 'Internship' | 'Probation' | 'Full-time';
+  workStatusDurationMonths?: number | string;
   highestQualification?: string;
   medicalHistory?: string;
   scoreCard?: number;

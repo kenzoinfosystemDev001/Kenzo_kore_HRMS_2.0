@@ -51,6 +51,11 @@ function mapUserRow(user: any) {
     nomineeName: user.nominee_name || 'Parent / Spouse',
     nomineeDob: user.nominee_dob || '1995-05-15',
     nomineeRelation: user.nominee_relation || 'Parent',
+    dependents: user.dependents || [],
+    nominee: user.nominee || { name: user.nominee_name || 'Parent / Spouse', relation: user.nominee_relation || 'Parent', dobOrAge: user.nominee_dob || '1995-05-15', contactPhone: '' },
+    parentsInfo: user.parents_info || [],
+    workStatus: user.work_status || 'Full-time',
+    workStatusDurationMonths: user.work_status_duration_months || '12',
     highestQualification: user.highest_qualification || 'Bachelor of Technology (B.Tech)',
     medicalHistory: user.medical_history || 'No major pre-existing conditions reported.',
     scoreCard: parseFloat(user.score_card || 95),
@@ -121,7 +126,7 @@ app.post('/api/employees', async (req, res) => {
     const { 
       empId, name, email, role, department, status, location, salary, joinDate, phone, emergencyPhone,
       address, maritalStatus, nomineeName, nomineeDob, nomineeRelation, highestQualification,
-      medicalHistory, scoreCard, manager, userRole 
+      medicalHistory, scoreCard, manager, userRole, dependents, nominee, parentsInfo, workStatus, workStatusDurationMonths
     } = req.body;
 
     if (!name || !email) {
@@ -134,19 +139,24 @@ app.post('/api/employees', async (req, res) => {
     const sysRole = userRole === 'Admin' ? 'Admin' : 'Employee';
     const finalJoinDate = (joinDate && joinDate.trim()) ? joinDate.trim() : new Date().toISOString().split('T')[0];
 
+    const finalNominee = nominee || { name: nomineeName || 'Parent / Spouse', relation: nomineeRelation || 'Parent', dobOrAge: nomineeDob || '1995-05-15', contactPhone: '' };
+
     await pool.query(
       `INSERT INTO users (
         id, name, email, password_hash, role, department, designation, status, location, salary, join_date, phone,
         emergency_phone, address, marital_status, nominee_name, nominee_dob, nominee_relation,
-        highest_qualification, medical_history, score_card, manager, avatar, documents
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
+        highest_qualification, medical_history, score_card, manager, avatar, documents,
+        dependents, nominee, parents_info, work_status, work_status_duration_months
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)`,
       [
         newId, name, email, defaultPasswordHash, sysRole, department || 'Engineering', role || 'Software Engineer',
         status || 'Active', location || 'Delhi NCR (HQ)', salary || 125000, finalJoinDate, phone || '+91 99997 40587',
         emergencyPhone || '+91 98110 00000', address || 'Kenzo - 32-C, UNIT NO. 107, B.R. COMPLEX, MAYUR VIHAR PHASE I, EAST DELHI - 110091',
-        maritalStatus || 'Single', nomineeName || 'Parent / Spouse', nomineeDob || '1995-05-15', nomineeRelation || 'Parent',
+        maritalStatus || 'Single', finalNominee.name || nomineeName || 'Parent / Spouse', finalNominee.dobOrAge || nomineeDob || '1995-05-15', finalNominee.relation || nomineeRelation || 'Parent',
         highestQualification || 'Bachelor of Technology (B.Tech)', medicalHistory || 'No major pre-existing conditions reported.',
-        scoreCard || 95.00, manager || 'Admin Office', avatarUrl, JSON.stringify(DEFAULT_EMPLOYEE_DOCUMENTS)
+        scoreCard || 95.00, manager || 'Admin Office', avatarUrl, JSON.stringify(DEFAULT_EMPLOYEE_DOCUMENTS),
+        JSON.stringify(dependents || []), JSON.stringify(finalNominee), JSON.stringify(parentsInfo || []),
+        workStatus || 'Full-time', String(workStatusDurationMonths || '12')
       ]
     );
 
@@ -165,7 +175,7 @@ app.put('/api/employees/:id/profile', async (req, res) => {
     const { 
       newEmpId, name, email, status, manager, phone, emergencyPhone, address, maritalStatus, nomineeName, nomineeDob,
       nomineeRelation, highestQualification, medicalHistory, scoreCard, salary, department, designation, role,
-      userRole, location, joinDate, newPassword 
+      userRole, location, joinDate, newPassword, dependents, nominee, parentsInfo, workStatus, workStatusDurationMonths
     } = req.body;
 
     const targetId = id.trim();
@@ -182,9 +192,9 @@ app.put('/api/employees/:id/profile', async (req, res) => {
     const sEmerg = (emergencyPhone && emergencyPhone.trim()) ? emergencyPhone.trim() : null;
     const sAddr = (address && address.trim()) ? address.trim() : null;
     const sMarital = (maritalStatus && maritalStatus.trim()) ? maritalStatus.trim() : null;
-    const sNomName = (nomineeName && nomineeName.trim()) ? nomineeName.trim() : null;
-    const sNomDob = (nomineeDob && nomineeDob.trim()) ? nomineeDob.trim() : null;
-    const sNomRel = (nomineeRelation && nomineeRelation.trim()) ? nomineeRelation.trim() : null;
+    const sNomName = (nominee?.name || nomineeName || '').trim() || null;
+    const sNomDob = (nominee?.dobOrAge || nomineeDob || '').trim() || null;
+    const sNomRel = (nominee?.relation || nomineeRelation || '').trim() || null;
     const sQual = (highestQualification && highestQualification.trim()) ? highestQualification.trim() : null;
     const sMed = (medicalHistory && medicalHistory.trim()) ? medicalHistory.trim() : null;
     const sScore = (scoreCard !== undefined && scoreCard !== null && scoreCard !== '') ? Number(scoreCard) : null;
@@ -193,6 +203,9 @@ app.put('/api/employees/:id/profile', async (req, res) => {
     const sDesig = (finalRole && finalRole.trim()) ? finalRole.trim() : null;
     const sLoc = (location && location.trim()) ? location.trim() : null;
     const sJoinDate = (joinDate && joinDate.trim()) ? joinDate.trim() : null;
+
+    const sWorkStatus = (workStatus && workStatus.trim()) ? workStatus.trim() : null;
+    const sWorkDuration = (workStatusDurationMonths !== undefined && workStatusDurationMonths !== null) ? String(workStatusDurationMonths) : null;
 
     let passwordHashToSet = null;
     if (newPassword && newPassword.trim().length > 0) {
@@ -231,12 +244,22 @@ app.put('/api/employees/:id/profile', async (req, res) => {
         password_hash = CASE WHEN $19::text IS NOT NULL THEN $19::text ELSE password_hash END,
         email = COALESCE($20, email),
         status = COALESCE($21, status),
-        manager = COALESCE($22, manager)
-       WHERE id = $23`,
+        manager = COALESCE($22, manager),
+        dependents = CASE WHEN $23::jsonb IS NOT NULL THEN $23::jsonb ELSE dependents END,
+        nominee = CASE WHEN $24::jsonb IS NOT NULL THEN $24::jsonb ELSE nominee END,
+        parents_info = CASE WHEN $25::jsonb IS NOT NULL THEN $25::jsonb ELSE parents_info END,
+        work_status = COALESCE($26, work_status),
+        work_status_duration_months = COALESCE($27, work_status_duration_months)
+       WHERE id = $28`,
       [
         nextId, sName, sPhone, sEmerg, sAddr, sMarital, sNomName, sNomDob,
         sNomRel, sQual, sMed, sScore, sSalary, sDept, sDesig,
-        sLoc, sJoinDate, sysRole, passwordHashToSet, sEmail, sStatus, sManager, (nextId !== targetId ? nextId : targetId)
+        sLoc, sJoinDate, sysRole, passwordHashToSet, sEmail, sStatus, sManager,
+        dependents ? JSON.stringify(dependents) : null,
+        nominee ? JSON.stringify(nominee) : null,
+        parentsInfo ? JSON.stringify(parentsInfo) : null,
+        sWorkStatus, sWorkDuration,
+        (nextId !== targetId ? nextId : targetId)
       ]
     );
 

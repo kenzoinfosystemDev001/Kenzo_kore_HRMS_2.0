@@ -323,14 +323,41 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                       <td className="p-3 font-medium text-slate-800">{emp.department}</td>
                       <td className="p-3 text-slate-600">{emp.role}</td>
                       <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          emp.status === 'Active' ? 'bg-emerald-100 text-emerald-800' :
-                          emp.status === 'Remote' ? 'bg-blue-100 text-blue-800' :
-                          emp.status === 'On Leave' ? 'bg-amber-100 text-amber-800' :
-                          'bg-slate-100 text-slate-800'
-                        }`}>
-                          {emp.status}
-                        </span>
+                        {(() => {
+                          const todayStr = new Date().toISOString().split('T')[0];
+                          const isClockedInToday = attendanceRecords?.some(
+                            a => (a.employeeId === emp.id || a.employeeName?.toLowerCase() === emp.name?.toLowerCase()) && a.date === todayStr && a.checkIn
+                          );
+                          const currentStatus = emp.status || 'Active';
+                          const effectiveStatus = isClockedInToday ? 'Active' : (currentStatus === 'Active' ? 'In-Active' : currentStatus);
+
+                          return (
+                            <select
+                              value={effectiveStatus}
+                              onChange={(e) => {
+                                const newStatus = e.target.value;
+                                if (newStatus === 'Active' && !isClockedInToday) {
+                                  alert(`Note: ${emp.name} has not clocked in today yet. Clock-in is required in attendance to show active status.`);
+                                }
+                                if (onUpdateEmployeeProfile) {
+                                  onUpdateEmployeeProfile(emp.id, { status: newStatus });
+                                }
+                              }}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border focus:outline-none cursor-pointer ${
+                                effectiveStatus === 'Active' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                                effectiveStatus === 'In-Active' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                                effectiveStatus === 'Resigned' ? 'bg-red-100 text-red-800 border-red-300' :
+                                'bg-slate-100 text-slate-800 border-slate-300'
+                              }`}
+                            >
+                              <option value="Active">Active {isClockedInToday ? '🟢 (Clocked-In)' : ''}</option>
+                              <option value="In-Active">In-Active</option>
+                              <option value="Resigned">Resigned</option>
+                              <option value="Remote">Remote</option>
+                              <option value="On Leave">On Leave</option>
+                            </select>
+                          );
+                        })()}
                       </td>
                       <td className="p-3 text-slate-500">{emp.location}</td>
                       <td className="p-3 text-slate-500">{emp.joinDate}</td>

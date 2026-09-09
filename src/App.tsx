@@ -492,6 +492,7 @@ export default function App() {
               onUpdateEmployeeDocuments={handleUpdateEmployeeDocuments}
               onDeleteEmployee={handleDeleteEmployee}
               currentUser={currentUser}
+              attendanceRecords={attendanceRecords}
             />
           )}
 

@@ -24,7 +24,7 @@ import {
   DollarSign,
   Briefcase
 } from 'lucide-react';
-import { Employee, EmployeeDocument, UserAccount } from '../../types';
+import { Employee, EmployeeDocument, UserAccount, Dependent, Nominee, ParentInfo } from '../../types';
 
 interface EmployeeProfileModalProps {
   employee: Employee;
@@ -89,6 +89,41 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     newPassword: '',
   });
 
+  // Work Status & Duration
+  const [workStatus, setWorkStatus] = useState<'Internship' | 'Probation' | 'Full-time'>(
+    employee.workStatus || 'Full-time'
+  );
+  const [workStatusDurationMonths, setWorkStatusDurationMonths] = useState<string | number>(
+    employee.workStatusDurationMonths || '12'
+  );
+
+  // Dependents (Multiple)
+  const [dependents, setDependents] = useState<Dependent[]>(
+    employee.dependents && employee.dependents.length > 0
+      ? employee.dependents
+      : [{ id: 'dep-1', name: employee.nomineeName || 'Spouse / Child', relation: employee.nomineeRelation || 'Parent', dobOrAge: employee.nomineeDob || '1995-05-15' }]
+  );
+
+  // Nominee (Strictly 1 Nominee)
+  const [nominee, setNominee] = useState<Nominee>(
+    employee.nominee || {
+      name: employee.nomineeName || 'Parent / Spouse',
+      relation: employee.nomineeRelation || 'Parent',
+      dobOrAge: employee.nomineeDob || '1995-05-15',
+      contactPhone: employee.emergencyPhone || '+91 98110 00000',
+    }
+  );
+
+  // Parents Info (Father, Mother, Other)
+  const [parentsInfo, setParentsInfo] = useState<ParentInfo[]>(
+    employee.parentsInfo && employee.parentsInfo.length > 0
+      ? employee.parentsInfo
+      : [
+          { parentType: 'Father', name: '', contactPhone: '', age: '' },
+          { parentType: 'Mother', name: '', contactPhone: '', age: '' },
+        ]
+  );
+
   // Document Vault State
   const [documents, setDocuments] = useState<EmployeeDocument[]>(
     employee.documents && employee.documents.length > 0
@@ -119,6 +154,14 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
       await onUpdateProfile(employee.id, {
         ...form,
         designation: form.role,
+        dependents,
+        nominee,
+        parentsInfo,
+        workStatus,
+        workStatusDurationMonths,
+        nomineeName: nominee.name,
+        nomineeDob: nominee.dobOrAge,
+        nomineeRelation: nominee.relation,
       });
       setIsEditing(false);
       setSuccessMsg('Profile and access credentials updated successfully!');
@@ -451,32 +494,281 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                     />
                   </div>
 
-                  <div>
-                    <label className="block font-bold text-slate-800 mb-1">Dependent Nominee Name</label>
-                    <input
-                      type="text"
-                      value={form.nomineeName}
-                      onChange={(e) => setForm({ ...form, nomineeName: e.target.value })}
-                      className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#0060ac]"
-                    />
+                  {/* WORK STATUS & DURATION SECTION (IMAGE 1 REQUIREMENT) */}
+                  <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-200 space-y-3 sm:col-span-2">
+                    <h4 className="font-bold text-xs text-amber-900 flex items-center gap-1.5 uppercase tracking-wider">
+                      <Briefcase className="w-4 h-4 text-amber-700" />
+                      Work Status & Duration
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Work Status</label>
+                        <select
+                          value={workStatus}
+                          onChange={(e) => setWorkStatus(e.target.value as any)}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#0060ac] font-semibold text-slate-900"
+                        >
+                          <option value="Full-time">Full-time</option>
+                          <option value="Probation">Probation</option>
+                          <option value="Internship">Internship</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Work Status Duration (Months)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          placeholder="Enter duration in months (e.g. 3, 6, 12)"
+                          value={workStatusDurationMonths}
+                          onChange={(e) => setWorkStatusDurationMonths(e.target.value)}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#0060ac] font-bold text-slate-900"
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block font-bold text-slate-800 mb-1">Nominee DOB & Relation</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="date"
-                        value={form.nomineeDob}
-                        onChange={(e) => setForm({ ...form, nomineeDob: e.target.value })}
-                        className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Relation (e.g. Parent)"
-                        value={form.nomineeRelation}
-                        onChange={(e) => setForm({ ...form, nomineeRelation: e.target.value })}
-                        className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs"
-                      />
+                  {/* PARENTS INFORMATION SECTION */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 sm:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-xs text-[#1a2b3c] flex items-center gap-1.5 uppercase tracking-wider">
+                        <Users className="w-4 h-4 text-[#0060ac]" />
+                        Parents Information
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setParentsInfo([...parentsInfo, { parentType: 'Other', name: '', contactPhone: '', age: '' }])}
+                        className="text-xs font-bold text-[#0060ac] hover:underline flex items-center gap-1"
+                      >
+                        + Add Parent Info
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {parentsInfo.map((p, idx) => (
+                        <div key={idx} className="p-3 bg-white border border-slate-200 rounded-lg grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
+                          <div>
+                            <label className="block font-semibold text-[11px] text-slate-600 mb-0.5">Parent Type</label>
+                            <select
+                              value={p.parentType}
+                              onChange={(e) => {
+                                const updated = [...parentsInfo];
+                                updated[idx].parentType = e.target.value as any;
+                                setParentsInfo(updated);
+                              }}
+                              className="w-full p-2 bg-slate-50 border border-slate-300 rounded-md text-xs font-bold text-slate-800"
+                            >
+                              <option value="Father">Father</option>
+                              <option value="Mother">Mother</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block font-semibold text-[11px] text-slate-600 mb-0.5">Full Name</label>
+                            <input
+                              type="text"
+                              placeholder="Parent Full Name"
+                              value={p.name}
+                              onChange={(e) => {
+                                const updated = [...parentsInfo];
+                                updated[idx].name = e.target.value;
+                                setParentsInfo(updated);
+                              }}
+                              className="w-full p-2 bg-white border border-slate-300 rounded-md text-xs"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-semibold text-[11px] text-slate-600 mb-0.5">Contact Number</label>
+                            <input
+                              type="text"
+                              placeholder="Phone Number"
+                              value={p.contactPhone}
+                              onChange={(e) => {
+                                const updated = [...parentsInfo];
+                                updated[idx].contactPhone = e.target.value;
+                                setParentsInfo(updated);
+                              }}
+                              className="w-full p-2 bg-white border border-slate-300 rounded-md text-xs"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1">
+                              <label className="block font-semibold text-[11px] text-slate-600 mb-0.5">Age</label>
+                              <input
+                                type="text"
+                                placeholder="Age"
+                                value={p.age}
+                                onChange={(e) => {
+                                  const updated = [...parentsInfo];
+                                  updated[idx].age = e.target.value;
+                                  setParentsInfo(updated);
+                                }}
+                                className="w-full p-2 bg-white border border-slate-300 rounded-md text-xs"
+                              />
+                            </div>
+                            {parentsInfo.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setParentsInfo(parentsInfo.filter((_, i) => i !== idx))}
+                                className="p-1.5 text-red-500 hover:bg-red-50 rounded mt-3"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* DEPENDENTS INFORMATION SECTION (MULTIPLE ALLOWED) */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 sm:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-xs text-[#1a2b3c] flex items-center gap-1.5 uppercase tracking-wider">
+                        <Heart className="w-4 h-4 text-pink-600" />
+                        Dependents Information (Multiple)
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setDependents([...dependents, { id: `dep-${Date.now()}`, name: '', relation: 'Child', dobOrAge: '' }])}
+                        className="text-xs font-bold text-[#0060ac] hover:underline flex items-center gap-1"
+                      >
+                        + Add Dependent
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {dependents.map((dep, idx) => (
+                        <div key={dep.id || idx} className="p-3 bg-white border border-slate-200 rounded-lg grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                          <div>
+                            <label className="block font-semibold text-[11px] text-slate-600 mb-0.5">Dependent Name</label>
+                            <input
+                              type="text"
+                              placeholder="Name"
+                              value={dep.name}
+                              onChange={(e) => {
+                                const updated = [...dependents];
+                                updated[idx].name = e.target.value;
+                                setDependents(updated);
+                              }}
+                              className="w-full p-2 bg-white border border-slate-300 rounded-md text-xs"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block font-semibold text-[11px] text-slate-600 mb-0.5">Relation</label>
+                            <select
+                              value={dep.relation}
+                              onChange={(e) => {
+                                const updated = [...dependents];
+                                updated[idx].relation = e.target.value;
+                                setDependents(updated);
+                              }}
+                              className="w-full p-2 bg-slate-50 border border-slate-300 rounded-md text-xs font-semibold text-slate-800"
+                            >
+                              <option value="Spouse">Spouse</option>
+                              <option value="Child">Child</option>
+                              <option value="Father">Father</option>
+                              <option value="Mother">Mother</option>
+                              <option value="Sibling">Sibling</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1">
+                              <label className="block font-semibold text-[11px] text-slate-600 mb-0.5">DOB / Age</label>
+                              <input
+                                type="text"
+                                placeholder="DOB or Age"
+                                value={dep.dobOrAge}
+                                onChange={(e) => {
+                                  const updated = [...dependents];
+                                  updated[idx].dobOrAge = e.target.value;
+                                  setDependents(updated);
+                                }}
+                                className="w-full p-2 bg-white border border-slate-300 rounded-md text-xs"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setDependents(dependents.filter((_, i) => i !== idx))}
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded mt-3"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* NOMINEE DETAILS SECTION (STRICTLY 1 NOMINEE) */}
+                  <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-200 space-y-3 sm:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-xs text-blue-900 flex items-center gap-1.5 uppercase tracking-wider">
+                        <ShieldCheck className="w-4 h-4 text-blue-600" />
+                        Nominee Details (Strictly 1 Nominee)
+                      </h4>
+                      <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">
+                        Primary Nominee
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-3 border border-blue-200 rounded-lg">
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Nominee Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Nominee Full Name"
+                          value={nominee.name}
+                          onChange={(e) => setNominee({ ...nominee, name: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#0060ac]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Relation</label>
+                        <select
+                          value={nominee.relation}
+                          onChange={(e) => setNominee({ ...nominee, relation: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#0060ac]"
+                        >
+                          <option value="Spouse">Spouse</option>
+                          <option value="Father">Father</option>
+                          <option value="Mother">Mother</option>
+                          <option value="Child">Child</option>
+                          <option value="Sibling">Sibling</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Nominee DOB / Age</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 1995-05-15 or 29 Yrs"
+                          value={nominee.dobOrAge}
+                          onChange={(e) => setNominee({ ...nominee, dobOrAge: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0060ac]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Contact Phone Number</label>
+                        <input
+                          type="text"
+                          placeholder="Nominee Contact Number"
+                          value={nominee.contactPhone}
+                          onChange={(e) => setNominee({ ...nominee, contactPhone: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-[#0060ac]"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -581,16 +873,65 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                {/* WORK STATUS & DURATION DISPLAY */}
+                <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-blue-700 uppercase">Dependent Nominee</span>
-                    <p className="font-bold text-slate-900">{employee.nomineeName || 'Parent / Spouse'}</p>
-                    <p className="text-[11px] text-slate-500">DOB: {employee.nomineeDob || '1995-05-15'} ({employee.nomineeRelation || 'Parent'})</p>
+                    <span className="text-[10px] font-bold text-amber-800 uppercase">Work Status</span>
+                    <p className="font-extrabold text-sm text-slate-900">{employee.workStatus || 'Full-time'}</p>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-blue-700 uppercase">Highest Qualification</span>
-                    <p className="font-bold text-slate-900">{employee.highestQualification || 'Bachelor of Technology (B.Tech)'}</p>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-amber-800 uppercase">Status Duration</span>
+                    <p className="font-extrabold text-sm text-amber-900">{employee.workStatusDurationMonths || 12} Months</p>
                   </div>
+                </div>
+
+                {/* PARENTS INFORMATION & NOMINEE */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <span className="text-[10px] font-bold text-[#0060ac] uppercase">Parents Information</span>
+                    {parentsInfo && parentsInfo.length > 0 ? (
+                      <div className="space-y-1 text-xs">
+                        {parentsInfo.map((p, i) => (
+                          <div key={i} className="flex justify-between border-b border-slate-200 pb-1 last:border-0">
+                            <span className="font-bold text-slate-800">{p.parentType}: {p.name || 'Not Provided'}</span>
+                            <span className="text-slate-500">{p.contactPhone || ''} {p.age ? `(${p.age} Yrs)` : ''}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 font-medium">No parents details recorded.</p>
+                    )}
+                  </div>
+
+                  <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-blue-700 uppercase">Primary Nominee (1)</span>
+                      <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Nominee</span>
+                    </div>
+                    <p className="font-extrabold text-sm text-slate-900">{nominee.name || employee.nomineeName || 'Parent / Spouse'}</p>
+                    <p className="text-xs text-slate-600 font-semibold">Relation: {nominee.relation || employee.nomineeRelation || 'Parent'}</p>
+                    <p className="text-[11px] text-slate-500">DOB/Age: {nominee.dobOrAge || employee.nomineeDob || '1995-05-15'} • Contact: {nominee.contactPhone || employee.emergencyPhone || 'N/A'}</p>
+                  </div>
+                </div>
+
+                {/* DEPENDENTS LIST (MULTIPLE) */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                  <span className="text-[10px] font-bold text-pink-700 uppercase">Dependents List (Multiple)</span>
+                  {dependents && dependents.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      {dependents.map((dep, i) => (
+                        <div key={i} className="p-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-between">
+                          <div>
+                            <p className="font-bold text-slate-900">{dep.name}</p>
+                            <p className="text-[11px] text-slate-500">{dep.relation}</p>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-600">{dep.dobOrAge}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 font-medium">No dependents listed.</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

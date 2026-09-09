@@ -80,7 +80,12 @@ export async function initDb() {
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS highest_qualification VARCHAR(150) DEFAULT 'Bachelor of Technology (B.Tech)';",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS medical_history TEXT DEFAULT 'No major pre-existing conditions reported.';",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS score_card NUMERIC(5, 2) DEFAULT 95.00;",
-      "ALTER TABLE users ADD COLUMN IF NOT EXISTS documents JSONB DEFAULT '[]'::jsonb;"
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS documents JSONB DEFAULT '[]'::jsonb;",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS dependents JSONB DEFAULT '[]'::jsonb;",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS nominee JSONB DEFAULT '{}'::jsonb;",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS parents_info JSONB DEFAULT '[]'::jsonb;",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS work_status VARCHAR(50) DEFAULT 'Full-time';",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS work_status_duration_months VARCHAR(50) DEFAULT '12';"
     ];
 
     for (const q of alterQueries) {

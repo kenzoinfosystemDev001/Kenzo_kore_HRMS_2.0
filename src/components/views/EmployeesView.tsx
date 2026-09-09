@@ -29,6 +29,7 @@ interface EmployeesViewProps {
   onUpdateEmployeeDocuments?: (id: string, docs: EmployeeDocument[]) => void;
   onDeleteEmployee: (id: string) => void;
   currentUser: UserAccount | null;
+  attendanceRecords?: any[];
 }
 
 export const EmployeesView: React.FC<EmployeesViewProps> = ({
@@ -40,6 +41,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
   onUpdateEmployeeDocuments,
   onDeleteEmployee,
   currentUser,
+  attendanceRecords = [],
 }) => {
   const isAdmin = currentUser?.role === 'Admin';
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
@@ -78,6 +80,8 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
     scoreCard: 95,
     manager: 'Admin Office',
     userRole: 'Employee' as 'Admin' | 'Employee',
+    workStatus: 'Full-time' as 'Internship' | 'Probation' | 'Full-time',
+    workStatusDurationMonths: '12',
   });
 
   // Filter Logic
@@ -135,21 +139,54 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
     }
   };
 
-  const getStatusBadge = (status: EmploymentStatus) => {
-    switch (status) {
-      case 'Active':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 text-[#48bbbe] border border-teal-200">Active</span>;
-      case 'On Leave':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">On Leave</span>;
-      case 'Pending':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">Pending</span>;
-      case 'Remote':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">Remote</span>;
-      case 'Contractor':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">Contractor</span>;
-      default:
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">{status}</span>;
+  const renderStatusSelector = (emp: Employee) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isClockedInToday = attendanceRecords?.some(
+      a => (a.employeeId === emp.id || a.employeeName?.toLowerCase() === emp.name?.toLowerCase()) && a.date === todayStr && a.checkIn
+    );
+
+    // Active status is strictly active if clocked in today
+    const currentStatus = emp.status || 'Active';
+    const effectiveStatus = isClockedInToday ? 'Active' : (currentStatus === 'Active' ? 'In-Active' : currentStatus);
+
+    if (!isAdmin) {
+      return (
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-max ${
+          effectiveStatus === 'Active' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+          effectiveStatus === 'In-Active' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+          effectiveStatus === 'Resigned' ? 'bg-red-100 text-red-800 border border-red-300' :
+          'bg-slate-100 text-slate-800 border border-slate-300'
+        }`}>
+          {effectiveStatus === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+          {effectiveStatus}
+        </span>
+      );
     }
+
+    return (
+      <select
+        value={effectiveStatus}
+        onChange={(e) => {
+          const newStatus = e.target.value as EmploymentStatus;
+          if (newStatus === 'Active' && !isClockedInToday) {
+            alert(`Note: ${emp.name} has not clocked in today yet. Attendance clock-in is required to reflect active punch.`);
+          }
+          onUpdateEmployeeProfile(emp.id, { status: newStatus });
+        }}
+        className={`px-2.5 py-1 rounded-lg text-xs font-bold border focus:outline-none cursor-pointer transition-all ${
+          effectiveStatus === 'Active' ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' :
+          effectiveStatus === 'In-Active' ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100' :
+          effectiveStatus === 'Resigned' ? 'bg-red-50 text-red-800 border-red-300 hover:bg-red-100' :
+          'bg-slate-50 text-slate-800 border-slate-300'
+        }`}
+      >
+        <option value="Active">Active {isClockedInToday ? '🟢 (Clocked-In)' : ''}</option>
+        <option value="In-Active">In-Active</option>
+        <option value="Resigned">Resigned</option>
+        <option value="Remote">Remote</option>
+        <option value="On Leave">On Leave</option>
+      </select>
+    );
   };
 
   if (!isAdmin) {
@@ -306,7 +343,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                     </td>
 
                     <td className="py-3 px-4">
-                      {getStatusBadge(emp.status)}
+                      {renderStatusSelector(emp)}
                     </td>
 
                     <td className="py-3 px-4 text-slate-600 font-medium">
@@ -379,7 +416,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                       <p className="text-xs text-slate-500">{emp.role}</p>
                     </div>
                   </div>
-                  {getStatusBadge(emp.status)}
+                  {renderStatusSelector(emp)}
                 </div>
 
                 <div className="space-y-1.5 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-3">
@@ -624,6 +661,33 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                     type="number"
                     value={newForm.salary}
                     onChange={(e) => setNewForm({ ...newForm, salary: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg focus:outline-none focus:border-[#0060ac]"
+                  />
+                </div>
+
+                {/* WORK STATUS & DURATION (IMAGE 1 REQUIREMENT) */}
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Work Status</label>
+                  <select
+                    value={newForm.workStatus}
+                    onChange={(e) => setNewForm({ ...newForm, workStatus: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg focus:outline-none focus:border-[#0060ac]"
+                  >
+                    <option value="Internship">Internship</option>
+                    <option value="Probation">Probation</option>
+                    <option value="Full-time">Full-time</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Duration (Months)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    placeholder="Enter months (e.g. 3, 6, 12)"
+                    value={newForm.workStatusDurationMonths}
+                    onChange={(e) => setNewForm({ ...newForm, workStatusDurationMonths: e.target.value })}
                     className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg focus:outline-none focus:border-[#0060ac]"
                   />
                 </div>

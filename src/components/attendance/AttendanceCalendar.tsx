@@ -12,6 +12,7 @@ import {
   Info
 } from 'lucide-react';
 import { AttendanceRecord, UserAccount, Employee } from '../../types';
+import { getTodayDateString, normalizeDateString } from '../../utils/dateUtils';
 
 interface AttendanceCalendarProps {
   attendanceRecords: AttendanceRecord[];
@@ -30,28 +31,15 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
   onClockIn,
   onClockOut,
 }) => {
-  const getTodayStr = () => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
-  const todayStr = getTodayStr();
+  const todayStr = getTodayDateString();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDateStr, setSelectedDateStr] = useState(todayStr);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(currentUser?.id || 'EMP-1001');
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(todayStr);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(currentUser?.id || employees[0]?.id || 'EMP-1001');
 
-  // Real-time Clock
-  const [nowTime, setNowTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNowTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
+  // Clock in timing & restriction rules (Strict Real-time Enforcement)
+  const nowTime = new Date();
   const hours = nowTime.getHours();
+  const minutes = nowTime.getMinutes();
   const isClockInAfter5PM = hours >= 17; // 5:00 PM restriction
 
   const targetEmpId = isAdmin ? selectedEmployeeId : (currentUser?.id || 'EMP-1001');
@@ -60,15 +48,12 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
     : (currentUser?.name || 'Employee');
 
   // Filter logs for the selected employee
-  const targetLogs = attendanceRecords.filter(a => a.employeeId === targetEmpId || a.employeeName.toLowerCase() === targetEmpName.toLowerCase());
+  const targetLogs = attendanceRecords.filter(a => a.employeeId === targetEmpId || a.employeeName.toLowerCase().trim() === targetEmpName.toLowerCase().trim());
 
   // Today's attendance record
-  const todayRecord = targetLogs.find(a => a.date === todayStr);
+  const todayRecord = targetLogs.find(a => normalizeDateString(a.date) === todayStr);
   const isClockedInToday = Boolean(todayRecord?.checkIn);
   const isClockedOutToday = Boolean(todayRecord?.checkOut);
-
-  // Auto 7:05 PM clock-out logic on frontend
-  const isAfter705PM = hours > 19 || (hours === 19 && nowTime.getMinutes() >= 5);
 
   // Month Calendar Calculations
   const year = currentDate.getFullYear();
@@ -94,7 +79,7 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
 
   // Helper to get status of any date on calendar
   const getDayAttendanceStatus = (dateStr: string) => {
-    const record = targetLogs.find(a => a.date === dateStr);
+    const record = targetLogs.find(a => normalizeDateString(a.date) === dateStr);
     if (record) {
       if (record.status === 'Present') return { type: 'present', label: 'Present', record };
       if (record.status === 'Late') return { type: 'late', label: 'Late', record };
@@ -334,7 +319,7 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
               <div className="flex justify-between items-center">
                 <span className="text-slate-500 font-semibold">Check-Out Time:</span>
                 <span className="font-mono font-bold text-slate-800">
-                  {selectedDayInfo.record?.checkOut || (selectedDayInfo.record?.checkIn ? (isAfter705PM ? '07:05 PM (Auto)' : '--') : '--')}
+                  {selectedDayInfo.record?.checkOut || (selectedDayInfo.record?.checkIn ? 'In Progress' : '--')}
                 </span>
               </div>
 

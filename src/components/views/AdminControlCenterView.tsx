@@ -40,6 +40,7 @@ import {
   SupportTicket,
   AssetItem
 } from '../../types';
+import { getTodayDateString, normalizeDateString } from '../../utils/dateUtils';
 
 interface AdminControlCenterViewProps {
   employees: Employee[];
@@ -94,6 +95,14 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
   const [adminSubTab, setAdminSubTab] = useState<'organization' | 'roles' | 'policies' | 'integrations' | 'audit' | 'settings'>('organization');
 
   // Metrics
+  const todayStr = getTodayDateString();
+  const presentTodayCount = employees.filter(emp =>
+    attendanceRecords?.some(
+      a => (a.employeeId === emp.id || a.employeeName?.toLowerCase().trim() === emp.name?.toLowerCase().trim()) &&
+           normalizeDateString(a.date) === todayStr &&
+           Boolean(a.checkIn)
+    )
+  ).length;
   const activeCount = employees.filter(e => e.status === 'Active' || e.status === 'Remote').length;
   const onLeaveCount = employees.filter(e => e.status === 'On Leave').length;
   const pendingLeaves = leaveRequests.filter(r => r.status === 'Pending');
@@ -196,7 +205,7 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
           <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
             {[
               { id: 'total', label: 'Total Employees', count: employees.length },
-              { id: 'present', label: 'Present Today', count: activeCount },
+              { id: 'present', label: 'Present Today', count: presentTodayCount },
               { id: 'leave', label: 'On Leave', count: onLeaveCount },
               { id: 'growth', label: 'Workforce Growth', count: '+12%' },
             ].map((sub) => (
@@ -240,9 +249,9 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                 </div>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-2xl font-bold text-[#1a2b3c]">{activeCount}</span>
+                <span className="text-2xl font-bold text-[#1a2b3c]">{presentTodayCount}</span>
                 <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  {Math.round((activeCount / (employees.length || 1)) * 100)}% Rate
+                  {Math.round((presentTodayCount / (employees.length || 1)) * 100)}% Rate
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1">Checked in via portal or biometric</p>
@@ -324,10 +333,12 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                       <td className="p-3 text-slate-600">{emp.role}</td>
                       <td className="p-3">
                         {(() => {
-                          const todayStr = new Date().toISOString().split('T')[0];
-                          const isClockedInToday = attendanceRecords?.some(
-                            a => (a.employeeId === emp.id || a.employeeName?.toLowerCase() === emp.name?.toLowerCase()) && a.date === todayStr && a.checkIn
+                          const todayRecord = attendanceRecords?.find(
+                            a => (a.employeeId === emp.id || a.employeeName?.toLowerCase().trim() === emp.name?.toLowerCase().trim()) && 
+                                 normalizeDateString(a.date) === todayStr
                           );
+                          const isClockedInToday = Boolean(todayRecord?.checkIn);
+                          const isClockedOut = Boolean(todayRecord?.checkOut);
                           const currentStatus = emp.status || 'Active';
                           const effectiveStatus = isClockedInToday ? 'Active' : (currentStatus === 'Active' ? 'In-Active' : currentStatus);
 
@@ -350,7 +361,7 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                                 'bg-slate-100 text-slate-800 border-slate-300'
                               }`}
                             >
-                              <option value="Active">Active {isClockedInToday ? '🟢 (Clocked-In)' : ''}</option>
+                              <option value="Active">Active {isClockedInToday ? (isClockedOut ? '🟢 (Completed Shift)' : '🟢 (Clocked-In)') : ''}</option>
                               <option value="In-Active">In-Active</option>
                               <option value="Resigned">Resigned</option>
                               <option value="Remote">Remote</option>

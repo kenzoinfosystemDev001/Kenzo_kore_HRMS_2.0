@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { LeaveRequest, LeaveType, Employee, UserAccount, AttendanceRecord, AttendanceCorrection } from '../../types';
 import { AttendanceCalendar } from '../attendance/AttendanceCalendar';
+import { getTodayDateString, normalizeDateString } from '../../utils/dateUtils';
 
 interface LeaveViewProps {
   leaveRequests: LeaveRequest[];
@@ -58,15 +59,7 @@ export const LeaveView: React.FC<LeaveViewProps> = ({
   const [noteAction, setNoteAction] = useState<'approve' | 'reject'>('approve');
 
   // Admin Attendance Management State
-  const getTodayStr = () => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
-  const todayStr = getTodayStr();
+  const todayStr = getTodayDateString();
   const [selectedAttDate, setSelectedAttDate] = useState(todayStr);
   const isSelectedDateToday = selectedAttDate === todayStr;
   const [attSearch, setAttSearch] = useState('');
@@ -124,14 +117,14 @@ export const LeaveView: React.FC<LeaveViewProps> = ({
   const latestLateDateStr = lateLog ? lateLog.date : (empLateCount > 0 ? 'Aug 10' : 'None');
 
   // Admin Attendance Dashboard Computations (1-to-1 Roster Mapping)
-  const activeRoster = employees.filter(e => e.status === 'Active' || e.status === 'Remote');
-  const totalRosterCount = activeRoster.length || 5;
+  const activeRoster = employees.filter(e => e.status !== 'Resigned' && e.status !== 'Terminated');
+  const totalRosterCount = activeRoster.length || employees.length || 5;
 
   const rosterWithAttendance = activeRoster.map(emp => {
     // Find single latest record for this employee on selectedAttDate
     const record = attendanceRecords.find(a => 
-      (a.employeeId === emp.id || a.employeeName.toLowerCase() === emp.name.toLowerCase()) && 
-      a.date === selectedAttDate
+      (a.employeeId === emp.id || a.employeeName.toLowerCase().trim() === emp.name.toLowerCase().trim()) && 
+      normalizeDateString(a.date) === selectedAttDate
     );
 
     let status = 'Absent';

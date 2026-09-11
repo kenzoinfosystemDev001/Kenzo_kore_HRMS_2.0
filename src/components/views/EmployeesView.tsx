@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Employee, Department, EmploymentStatus, UserAccount, EmployeeDocument } from '../../types';
 import { EmployeeProfileModal } from '../profile/EmployeeProfileModal';
+import { getTodayDateString, normalizeDateString } from '../../utils/dateUtils';
 
 interface EmployeesViewProps {
   employees: Employee[];
@@ -140,10 +141,13 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
   };
 
   const renderStatusSelector = (emp: Employee) => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const isClockedInToday = attendanceRecords?.some(
-      a => (a.employeeId === emp.id || a.employeeName?.toLowerCase() === emp.name?.toLowerCase()) && a.date === todayStr && a.checkIn
+    const todayStr = getTodayDateString();
+    const todayRecord = attendanceRecords?.find(
+      a => (a.employeeId === emp.id || a.employeeName?.toLowerCase().trim() === emp.name?.toLowerCase().trim()) && 
+           normalizeDateString(a.date) === todayStr
     );
+    const isClockedInToday = Boolean(todayRecord?.checkIn);
+    const isClockedOut = Boolean(todayRecord?.checkOut);
 
     // Active status is strictly active if clocked in today
     const currentStatus = emp.status || 'Active';
@@ -180,7 +184,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
           'bg-slate-50 text-slate-800 border-slate-300'
         }`}
       >
-        <option value="Active">Active {isClockedInToday ? '🟢 (Clocked-In)' : ''}</option>
+        <option value="Active">Active {isClockedInToday ? (isClockedOut ? '🟢 (Completed Shift)' : '🟢 (Clocked-In)') : ''}</option>
         <option value="In-Active">In-Active</option>
         <option value="Resigned">Resigned</option>
         <option value="Remote">Remote</option>

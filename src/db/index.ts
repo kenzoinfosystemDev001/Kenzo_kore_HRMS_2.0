@@ -3,6 +3,9 @@ import bcrypt from 'bcryptjs';
 
 const { Pool } = pg;
 
+// Prevent timezone shift: parse PostgreSQL DATE (OID 1082) directly as string 'YYYY-MM-DD'
+pg.types.setTypeParser(1082, (val: string) => val);
+
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_Tp0dkhfFI3eC@ep-raspy-mouse-ayg7l8jm-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
 
 export const pool = new Pool({

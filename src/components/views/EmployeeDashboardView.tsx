@@ -40,6 +40,7 @@ import {
   NotificationItem
 } from '../../types';
 import { downloadPayslipPDF } from '../../utils/pdfGenerator';
+import { getTodayDateString, normalizeDateString } from '../../utils/dateUtils';
 import { EmployeeProfileModal } from '../profile/EmployeeProfileModal';
 
 interface EmployeeDashboardViewProps {
@@ -121,14 +122,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const getTodayStr = () => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-  const todayIsoStr = getTodayStr();
+  const todayIsoStr = getTodayDateString();
 
   const todayDateStr = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -421,7 +415,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
                 <span>Today's Attendance ({todayIsoStr})</span>
               </div>
               {(() => {
-                const todayRec = myAttendance.find(a => a.date === todayIsoStr);
+                const todayRec = myAttendance.find(a => normalizeDateString(a.date) === todayIsoStr);
                 const isIn = Boolean(todayRec?.checkIn);
                 return (
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
@@ -436,7 +430,7 @@ export const EmployeeDashboardView: React.FC<EmployeeDashboardViewProps> = ({
           </div>
 
           {(() => {
-            const todayRec = myAttendance.find(a => a.date === todayIsoStr);
+            const todayRec = myAttendance.find(a => normalizeDateString(a.date) === todayIsoStr);
             const isIn = Boolean(todayRec?.checkIn);
             const isOut = Boolean(todayRec?.checkOut);
             const isAfter5 = new Date().getHours() >= 17;

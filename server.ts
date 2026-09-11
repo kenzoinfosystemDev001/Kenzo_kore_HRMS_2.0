@@ -3,10 +3,14 @@ import express from 'express';
 import path from 'path';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
+import pg from 'pg';
 import { v2 as cloudinary } from 'cloudinary';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { pool, initDb, DEFAULT_EMPLOYEE_DOCUMENTS } from './src/db/index';
+
+// Prevent timezone shift on PostgreSQL DATE columns
+pg.types.setTypeParser(1082, (val: string) => val);
 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME || 'rhyn1n8t',
@@ -794,10 +798,10 @@ app.get('/api/attendance', async (_req, res) => {
       id: r.id,
       employeeId: r.employee_id,
       employeeName: r.employee_name,
-      date: r.date ? new Date(r.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      date: formatAttendanceDate(r.date),
       checkIn: r.check_in,
       checkOut: r.check_out,
-      workHours: r.work_hours || '0h 0m',
+      workHours: r.work_hours || calculateRealWorkHours(r.check_in, r.check_out),
       status: r.status,
       location: r.location || 'Delhi NCR (HQ)',
     }));
@@ -807,6 +811,22 @@ app.get('/api/attendance', async (_req, res) => {
     res.status(500).json({ error: 'Failed to fetch attendance records' });
   }
 });
+
+function getISTDateString(d: Date = new Date()): string {
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+}
+
+function formatAttendanceDate(d: any): string {
+  if (!d) return getISTDateString();
+  if (typeof d === 'string') {
+    const match = d.match(/^\d{4}-\d{2}-\d{2}/);
+    if (match) return match[0];
+  }
+  if (d instanceof Date) {
+    return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  }
+  return String(d).split('T')[0];
+}
 
 function getISTTimeString(d: Date = new Date()): string {
   return d.toLocaleTimeString('en-US', {
@@ -866,7 +886,7 @@ app.post('/api/attendance/clock-in', async (req, res) => {
       if (istMatch[3].toUpperCase() === 'AM' && hours === 12) hours = 0;
     }
 
-    const today = now.toISOString().split('T')[0];
+    const today = getISTDateString(now);
 
     // Rule: No clock-in after 5:00 PM (17:00)
     if (hours >= 17) {
@@ -927,11 +947,13 @@ app.post('/api/attendance/clock-out', async (req, res) => {
   try {
     const { employeeId } = req.body;
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const today = getISTDateString(now);
     const istTimeStr = getISTTimeString(now);
 
     const existing = await pool.query(
-      'SELECT * FROM attendance WHERE employee_id = $1 AND date = $2',
+      `SELECT * FROM attendance 
+       WHERE employee_id = $1 AND (date = $2 OR check_out IS NULL)
+       ORDER BY date DESC, id DESC LIMIT 1`,
       [employeeId, today]
     );
 
@@ -952,7 +974,7 @@ app.post('/api/attendance/clock-out', async (req, res) => {
       id: row.id,
       employeeId: row.employee_id,
       employeeName: row.employee_name,
-      date: today,
+      date: formatAttendanceDate(row.date),
       checkIn: checkInStr,
       checkOut: istTimeStr,
       workHours: workHoursStr,
@@ -1040,27 +1062,6 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
-
-  // Automatic 7:05 PM (19:05) Clock-Out Background Worker
-  setInterval(async () => {
-    try {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-      const today = now.toISOString().split('T')[0];
-
-      if (hours > 19 || (hours === 19 && minutes >= 5)) {
-        await pool.query(
-          `UPDATE attendance 
-           SET check_out = '07:05 PM', work_hours = '9h 35m' 
-           WHERE date = $1 AND check_in IS NOT NULL AND check_out IS NULL`,
-          [today]
-        );
-      }
-    } catch (err) {
-      // Background worker quiet retry
-    }
-  }, 30000);
 
   app.listen(PORT, () => {
     console.log(`Kenzo_Kore_HRMS Server running at http://localhost:${PORT}`);

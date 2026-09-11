@@ -361,9 +361,6 @@ export async function initDb() {
     // 2. CLEANUP UTC FORMATTED CHECK-IN TIMESTAMPS TO REAL LOCAL TIME (Asia/Kolkata IST)
     await client.query("UPDATE attendance SET check_in = '11:31 AM' WHERE check_in LIKE '06:01%' OR check_in LIKE '06:00%'");
 
-    // 3. NO AUTO CLOCK-IN FOR TODAY: Remove any auto clock-ins inserted for today so employees clock in manually
-    await client.query("DELETE FROM attendance WHERE date = $1", [realTodayStr]);
-
     // 3. SEED HISTORICAL ATTENDANCE FOR PAST DAYS ONLY (For analytics & history)
     const attCheck = await client.query('SELECT COUNT(*) FROM attendance');
     if (parseInt(attCheck.rows[0].count, 10) === 0) {

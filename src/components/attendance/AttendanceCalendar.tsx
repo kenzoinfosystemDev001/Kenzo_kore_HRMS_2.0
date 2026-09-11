@@ -354,31 +354,24 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
               <div className="space-y-2">
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-[#0060ac]">
-                    <Info className="w-4 h-4" /> Live Rules for Today ({todayStr}):
+                    <Info className="w-4 h-4" /> Attendance Rules for Today ({todayStr}):
                   </div>
                   <ul className="list-disc list-inside space-y-0.5 text-[11px] text-slate-600 font-medium">
-                    <li>No auto clock-in (Employee action required)</li>
-                    <li>Clock-in unavailable after <strong>05:00 PM</strong></li>
-                    <li>Auto clocked-out at <strong>07:05 PM</strong></li>
+                    <li>Real-time punch recording directly into PostgreSQL database</li>
+                    <li>Clocking in after <strong>10:30 AM</strong> records attendance as <strong>Late</strong></li>
+                    <li>Status remains active throughout the day until you click <strong>Clock Out</strong></li>
                   </ul>
                 </div>
 
                 {/* Clock-In / Clock-Out Action Buttons for Today */}
                 {!isClockedInToday ? (
-                  isClockInAfter5PM ? (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 font-bold text-center flex items-center justify-center gap-1.5">
-                      <AlertCircle className="w-4 h-4 text-red-600" />
-                      Clock-in window closed for today after 05:00 PM
-                    </div>
-                  ) : (
-                    onClockIn && (
-                      <button
-                        onClick={() => onClockIn(targetEmpId, targetEmpName)}
-                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
-                      >
-                        <Clock className="w-4 h-4" /> Clock In Now ({nowTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })})
-                      </button>
-                    )
+                  onClockIn && (
+                    <button
+                      onClick={() => onClockIn(targetEmpId, targetEmpName)}
+                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                    >
+                      <Clock className="w-4 h-4" /> Clock In Now ({nowTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })})
+                    </button>
                   )
                 ) : !isClockedOutToday ? (
                   onClockOut && (

@@ -875,7 +875,7 @@ app.post('/api/attendance/clock-in', async (req, res) => {
     const now = new Date();
     const istTimeStr = getISTTimeString(now);
     
-    // Extract IST hours & minutes for late & cutoff rules
+    // Extract IST hours & minutes for late rule
     const istMatch = istTimeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
     let hours = now.getHours();
     let minutes = now.getMinutes();
@@ -888,19 +888,29 @@ app.post('/api/attendance/clock-in', async (req, res) => {
 
     const today = getISTDateString(now);
 
-    // Rule: No clock-in after 5:00 PM (17:00)
-    if (hours >= 17) {
-      return res.status(400).json({ error: 'Clock-in is disabled after 5:00 PM.' });
+    // Resolve valid employee ID and name from users table
+    let validEmpId = employeeId;
+    let validEmpName = employeeName;
+    const userRes = await pool.query(
+      'SELECT id, name FROM users WHERE id = $1 OR LOWER(name) = LOWER($2) OR LOWER(email) = LOWER($3) LIMIT 1',
+      [employeeId, employeeName, employeeId]
+    );
+    if (userRes.rows.length > 0) {
+      validEmpId = userRes.rows[0].id;
+      validEmpName = userRes.rows[0].name;
     }
 
     // Check if already clocked in today
     const existing = await pool.query(
-      'SELECT * FROM attendance WHERE employee_id = $1 AND date = $2',
-      [employeeId, today]
+      'SELECT * FROM attendance WHERE (employee_id = $1 OR LOWER(employee_name) = LOWER($2)) AND date = $3',
+      [validEmpId, validEmpName, today]
     );
 
     if (existing.rows.length > 0) {
       const r = existing.rows[0];
+      // Keep status active in users table
+      await pool.query("UPDATE users SET status = 'Active' WHERE id = $1", [validEmpId]);
+
       return res.json({
         id: r.id,
         employeeId: r.employee_id,
@@ -914,7 +924,7 @@ app.post('/api/attendance/clock-in', async (req, res) => {
       });
     }
 
-    // Rule: After 10:30 AM, mark as Late
+    // Rule: After 10:30 AM, mark as Late, otherwise Present
     const isLate = hours > 10 || (hours === 10 && minutes > 30);
     const status = isLate ? 'Late' : 'Present';
 
@@ -923,13 +933,16 @@ app.post('/api/attendance/clock-in', async (req, res) => {
     await pool.query(
       `INSERT INTO attendance (id, employee_id, employee_name, date, check_in, work_hours, status, location)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [newId, employeeId, employeeName, today, istTimeStr, '0h 0m', status, location || 'Delhi NCR (HQ)']
+      [newId, validEmpId, validEmpName, today, istTimeStr, '0h 0m', status, location || 'Delhi NCR (HQ)']
     );
+
+    // Update employee status to Active in users table as well
+    await pool.query("UPDATE users SET status = 'Active' WHERE id = $1", [validEmpId]);
 
     res.status(201).json({
       id: newId,
-      employeeId,
-      employeeName,
+      employeeId: validEmpId,
+      employeeName: validEmpName,
       date: today,
       checkIn: istTimeStr,
       checkOut: null,
@@ -939,7 +952,7 @@ app.post('/api/attendance/clock-in', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Clock-in error:', error);
-    res.status(500).json({ error: 'Failed to record clock-in' });
+    res.status(500).json({ error: 'Failed to record clock-in: ' + (error?.message || '') });
   }
 });
 
@@ -950,11 +963,22 @@ app.post('/api/attendance/clock-out', async (req, res) => {
     const today = getISTDateString(now);
     const istTimeStr = getISTTimeString(now);
 
+    let validEmpId = employeeId;
+    let validEmpName = '';
+    const userRes = await pool.query(
+      'SELECT id, name FROM users WHERE id = $1 OR LOWER(name) = LOWER($2) OR LOWER(email) = LOWER($3) LIMIT 1',
+      [employeeId, employeeId, employeeId]
+    );
+    if (userRes.rows.length > 0) {
+      validEmpId = userRes.rows[0].id;
+      validEmpName = userRes.rows[0].name;
+    }
+
     const existing = await pool.query(
       `SELECT * FROM attendance 
-       WHERE employee_id = $1 AND (date = $2 OR check_out IS NULL)
+       WHERE (employee_id = $1 OR ($2 <> '' AND LOWER(employee_name) = LOWER($2))) AND (date = $3 OR check_out IS NULL)
        ORDER BY date DESC, id DESC LIMIT 1`,
-      [employeeId, today]
+      [validEmpId, validEmpName, today]
     );
 
     if (existing.rows.length === 0) {

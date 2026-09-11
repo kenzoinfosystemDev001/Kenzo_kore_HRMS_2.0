@@ -29,10 +29,10 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
-const MONTHS_LIST = [
-  'January 2026', 'February 2026', 'March 2026', 'April 2026',
-  'May 2026', 'June 2026', 'July 2026', 'August 2026',
-  'September 2026', 'October 2026', 'November 2026', 'December 2026'
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April',
+  'May', 'June', 'July', 'August',
+  'September', 'October', 'November', 'December'
 ];
 
 const VIEW_TITLES: Record<NavView, { title: string; subtitle: string }> = {
@@ -91,7 +91,8 @@ export const Header: React.FC<HeaderProps> = ({
   
   // Calendar Modal State (Point 3 - Interactive Working Calendar)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [selectedMonthIdx, setSelectedMonthIdx] = useState(7); // August 2026 (0-indexed)
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+  const [selectedMonthIdx, setSelectedMonthIdx] = useState(() => new Date().getMonth());
   const [selectedDayLog, setSelectedDayLog] = useState<string | null>(null);
 
   const todayDateStr = new Date().toLocaleDateString('en-US', {
@@ -101,42 +102,91 @@ export const Header: React.FC<HeaderProps> = ({
     year: 'numeric'
   });
 
+  const todayBadgeStr = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  const handlePrevMonth = () => {
+    setSelectedMonthIdx((prev) => {
+      if (prev > 0) return prev - 1;
+      setSelectedYear((y) => y - 1);
+      return 11;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setSelectedMonthIdx((prev) => {
+      if (prev < 11) return prev + 1;
+      setSelectedYear((y) => y + 1);
+      return 0;
+    });
+  };
+
+  const handleJumpToToday = () => {
+    const today = new Date();
+    setSelectedYear(today.getFullYear());
+    setSelectedMonthIdx(today.getMonth());
+  };
+
   const companyHolidays = [
-    { date: 'Aug 15, 2026', name: 'Independence Day', type: 'Public Holiday' },
-    { date: 'Sep 07, 2026', name: 'Labor Day', type: 'Global Holiday' },
-    { date: 'Oct 02, 2026', name: 'Gandhi Jayanti', type: 'National Holiday' },
-    { date: 'Nov 10, 2026', name: 'Diwali Festival', type: 'Festival Holiday' },
-    { date: 'Dec 25, 2026', name: 'Christmas Day', type: 'Public Holiday' },
+    { month: 0, day: 26, name: 'Republic Day', type: 'National Holiday' },
+    { month: 4, day: 1, name: 'Labor Day', type: 'Global Holiday' },
+    { month: 7, day: 15, name: 'Independence Day', type: 'Public Holiday' },
+    { month: 9, day: 2, name: 'Gandhi Jayanti', type: 'National Holiday' },
+    { month: 10, day: 10, name: 'Diwali Festival', type: 'Festival Holiday' },
+    { month: 11, day: 25, name: 'Christmas Day', type: 'Public Holiday' },
   ];
 
-  // Helper to render days grid for August 2026
+  // Helper to render days grid dynamically for the selected month and year
   const renderDaysGrid = () => {
-    const isCurrentMonth = selectedMonthIdx === 7; // August
-    const todayNum = 12;
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+    const todayNum = currentDate.getDate();
 
-    const days = [];
-    for (let day = 1; day <= 31; day++) {
-      const isFuture = isCurrentMonth ? day > todayNum : selectedMonthIdx > 7;
+    const isCurrentMonth = selectedYear === currentYear && selectedMonthIdx === currentMonth;
+    const isFutureMonth = selectedYear > currentYear || (selectedYear === currentYear && selectedMonthIdx > currentMonth);
+
+    const daysInMonth = new Date(selectedYear, selectedMonthIdx + 1, 0).getDate();
+    const firstDayOfWeek = new Date(selectedYear, selectedMonthIdx, 1).getDay(); // 0 = Sun
+
+    const cells = [];
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      cells.push(<div key={`empty-${i}`} className="p-2" />);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
       const isToday = isCurrentMonth && day === todayNum;
-      const isHoliday = isCurrentMonth && day === 15;
+      const isFuture = isFutureMonth || (isCurrentMonth && day > todayNum);
+      const holiday = companyHolidays.find(h => h.month === selectedMonthIdx && h.day === day);
+      const isHoliday = Boolean(holiday);
 
-      days.push(
+      const monthShort = MONTH_NAMES[selectedMonthIdx].slice(0, 3);
+      const logText = isHoliday
+        ? `${monthShort} ${day}, ${selectedYear} - Holiday: ${holiday?.name} (${holiday?.type})`
+        : isFuture
+          ? `${monthShort} ${day}, ${selectedYear} - Scheduled Workday`
+          : `${monthShort} ${day}, ${selectedYear} - Present (Checked in 09:00 AM, Clocked out 06:00 PM)`;
+
+      cells.push(
         <button
           key={day}
           disabled={isFuture}
-          onClick={() => setSelectedDayLog(`Aug ${day}, 2026 - Present (Checked in 09:00 AM, Clocked out 06:00 PM)`)}
+          onClick={() => setSelectedDayLog(logText)}
           className={`
             p-2 rounded-lg text-xs font-bold transition-all relative flex flex-col items-center justify-center
             ${isToday 
               ? 'bg-[#0060ac] text-white font-extrabold shadow-md ring-2 ring-blue-300' 
               : isHoliday
-                ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
                 : isFuture
                   ? 'bg-slate-100/50 text-slate-300 cursor-not-allowed border border-transparent'
                   : 'hover:bg-blue-50 text-slate-800 border border-slate-200'
             }
           `}
-          title={isFuture ? 'Upcoming Day - Unclickable' : isHoliday ? 'Independence Day' : `Day ${day} Attendance`}
+          title={isFuture ? 'Upcoming Day' : isHoliday ? holiday?.name : `Day ${day} Attendance`}
         >
           <span>{day}</span>
           {isHoliday && <span className="text-[9px]">🎉</span>}
@@ -144,7 +194,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       );
     }
-    return days;
+    return cells;
   };
 
   return (
@@ -191,7 +241,10 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Interactive Working Calendar Button */}
           <button
-            onClick={() => setIsCalendarOpen(true)}
+            onClick={() => {
+              handleJumpToToday();
+              setIsCalendarOpen(true);
+            }}
             className="hidden xl:flex items-center gap-1.5 text-xs text-slate-700 font-bold bg-white px-3 py-1.5 rounded-lg border border-[#e2e8f0] hover:bg-slate-50 hover:border-[#0060ac] transition-all cursor-pointer shadow-2xs"
             title="Open Interactive Company Calendar"
           >
@@ -273,7 +326,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setSelectedMonthIdx((prev) => (prev > 0 ? prev - 1 : 11))}
+                  onClick={handlePrevMonth}
                   className="p-1 hover:bg-slate-200 rounded text-slate-600"
                   title="Previous Month"
                 >
@@ -284,21 +337,25 @@ export const Header: React.FC<HeaderProps> = ({
                   onChange={(e) => setSelectedMonthIdx(Number(e.target.value))}
                   className="font-bold text-sm text-[#1a2b3c] bg-white border border-slate-300 rounded-lg px-2 py-1 focus:outline-none"
                 >
-                  {MONTHS_LIST.map((m, idx) => (
-                    <option key={idx} value={idx}>{m}</option>
+                  {MONTH_NAMES.map((m, idx) => (
+                    <option key={idx} value={idx}>{m} {selectedYear}</option>
                   ))}
                 </select>
                 <button 
-                  onClick={() => setSelectedMonthIdx((prev) => (prev < 11 ? prev + 1 : 0))}
+                  onClick={handleNextMonth}
                   className="p-1 hover:bg-slate-200 rounded text-slate-600"
                   title="Next Month"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-              <span className="text-xs font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
-                Today: Aug 12, 2026
-              </span>
+              <button
+                onClick={handleJumpToToday}
+                className="text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-full border border-teal-200 transition-colors cursor-pointer"
+                title="Click to jump to today"
+              >
+                Today: {todayBadgeStr}
+              </button>
             </div>
 
             {/* Past 1 Month Attendance Analysis Box */}
@@ -356,7 +413,7 @@ export const Header: React.FC<HeaderProps> = ({
                       <p className="text-[10px] text-slate-500">{h.type}</p>
                     </div>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                      {h.date}
+                      {MONTH_NAMES[h.month].slice(0, 3)} {String(h.day).padStart(2, '0')}, {selectedYear}
                     </span>
                   </div>
                 ))}

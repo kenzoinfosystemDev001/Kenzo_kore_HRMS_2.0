@@ -439,11 +439,14 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                           className="w-full p-2.5 bg-white border border-amber-300 rounded-lg font-bold text-[#1a2b3c] focus:outline-none focus:border-[#0060ac]"
                         >
                           <option value="Active">Active</option>
+                          <option value="In-Active">In-Active</option>
+                          <option value="Resigned">Resigned</option>
+                          <option value="Terminated">Terminated</option>
+                          <option value="ATL">ATL</option>
                           <option value="On Leave">On Leave</option>
                           <option value="Remote">Remote</option>
                           <option value="Pending">Pending</option>
                           <option value="Contractor">Contractor</option>
-                          <option value="Terminated">Terminated</option>
                         </select>
                       </div>
 

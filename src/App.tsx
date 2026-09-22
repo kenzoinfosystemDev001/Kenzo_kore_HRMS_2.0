@@ -541,7 +541,15 @@ export default function App() {
           )}
 
           {currentView === 'ai-assistant' && (
-            <AiAssistantView employees={employees} currentUser={currentUser} />
+            <AiAssistantView
+              employees={employees}
+              currentUser={currentUser}
+              attendanceRecords={attendanceRecords}
+              leaveRequests={leaveRequests}
+              payroll={payroll}
+              candidates={candidates}
+              supportTickets={supportTickets}
+            />
           )}
 
           {currentView === 'settings' && (

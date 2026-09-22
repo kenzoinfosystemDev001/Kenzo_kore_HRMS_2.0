@@ -12,22 +12,46 @@ import {
   MessageSquare,
   AlertCircle
 } from 'lucide-react';
-import { AiChatMessage, Employee, UserAccount } from '../../types';
+import { 
+  AiChatMessage, 
+  Employee, 
+  UserAccount, 
+  AttendanceRecord, 
+  LeaveRequest, 
+  PayrollRecord, 
+  Candidate, 
+  SupportTicket 
+} from '../../types';
 
 interface AiAssistantViewProps {
   employees: Employee[];
   currentUser?: UserAccount | null;
+  attendanceRecords?: AttendanceRecord[];
+  leaveRequests?: LeaveRequest[];
+  payroll?: PayrollRecord[];
+  candidates?: Candidate[];
+  supportTickets?: SupportTicket[];
 }
 
-export const AiAssistantView: React.FC<AiAssistantViewProps> = ({ employees, currentUser }) => {
+export const AiAssistantView: React.FC<AiAssistantViewProps> = ({ 
+  employees, 
+  currentUser,
+  attendanceRecords = [],
+  leaveRequests = [],
+  payroll = [],
+  candidates = [],
+  supportTickets = [],
+}) => {
   const activeEmp1 = employees[0]?.name || 'Sujal kumar';
   const activeEmp2 = employees[1]?.name || 'Laxmi Narayan';
 
   const quickPrompts = [
+    'How many employees are active today?',
     `Draft welcome onboarding message for ${activeEmp1}`,
-    'Summarize enterprise parental leave policy & PTO rules',
+    'Show real-time attendance report for today',
     `Draft executive announcement for ${activeEmp2} promotion`,
-    'Provide recommendations to reduce engineering turnover risk',
+    'Summarize pending leave requests and PTO',
+    'What is our total workforce headcount by department?',
   ];
 
   const userName = currentUser?.name ? currentUser.name.split(' ')[0] : 'User';
@@ -36,7 +60,7 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({ employees, cur
     {
       id: 'm1',
       sender: 'ai',
-      text: `Hello ${userName}. I am your Executive AI HR Consultant. How can I assist you with policy drafting, employee communications, or compliance reviews today?`,
+      text: `Hello ${userName}. I am your Executive AI HR Consultant with live access to Kenzo HQ real-time database. How can I assist you with employee status, attendance, policy drafting, or workforce analytics today?`,
       timestamp: 'Just now',
     }
   ]);
@@ -48,7 +72,7 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({ employees, cur
         const updated = [...prev];
         updated[0] = {
           ...updated[0],
-          text: `Hello ${currentFirstName}. I am your Executive AI HR Consultant. How can I assist you with policy drafting, employee communications, or compliance reviews today?`,
+          text: `Hello ${currentFirstName}. I am your Executive AI HR Consultant with live access to Kenzo HQ real-time database. How can I assist you with employee status, attendance, policy drafting, or workforce analytics today?`,
         };
         return updated;
       }
@@ -75,16 +99,18 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({ employees, cur
     setIsLoading(true);
 
     try {
-      // Call server backend endpoint proxying Gemini
+      // Call server backend endpoint proxying Gemini with real-time database
       const res = await fetch('/api/ai-chat', {
         method: 'POST',
-        headers: { 'Content-[#1a2b3c]': 'application/json', 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: textToSend,
           context: {
             totalEmployees: employees.length,
             activeEmployees: employees.filter(e => e.status === 'Active').length,
             departments: Array.from(new Set(employees.map(e => e.department))),
+            todayAttendanceCount: attendanceRecords.length,
+            pendingLeavesCount: leaveRequests.filter(l => l.status === 'Pending').length,
           }
         }),
       });
@@ -102,13 +128,46 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({ employees, cur
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
       console.error('AI chat error:', err);
+      
+      // Intelligent live fallback using client state
+      const pLower = textToSend.toLowerCase();
+      const todayIso = new Date().toISOString().split('T')[0];
+      const todayAtt = attendanceRecords.filter(a => a.date === todayIso);
+      const activeEmps = employees.filter(e => 
+        todayAtt.some(a => (a.employeeId === e.id || a.employeeName?.toLowerCase().trim() === e.name?.toLowerCase().trim()) && a.checkIn)
+      );
+
+      let fallbackText = '';
+      if (pLower.includes('active') && (pLower.includes('today') || pLower.includes('employee') || pLower.includes('count') || pLower.includes('how many') || pLower.includes('who'))) {
+        fallbackText = activeEmps.length > 0
+          ? `Currently, there are **${activeEmps.length} employee${activeEmps.length === 1 ? '' : 's'} active** (clocked in) today (${todayIso}):\n\n` +
+            activeEmps.map(e => `• **${e.name}** (${e.department} • ${e.role}) - Clocked In 🟢`).join('\n')
+          : `Currently, **0 employees** have clocked in today (${todayIso}). All registered employees are currently marked as awaiting punch.`;
+      } else if (pLower.includes('attendance') || pLower.includes('check in') || pLower.includes('punch')) {
+        fallbackText = `**Real-Time Attendance Register for Today (${todayIso}):**\n\n` +
+          (todayAtt.length > 0 
+            ? todayAtt.map(a => `• **${a.employeeName}**: In at ${a.checkIn}${a.checkOut ? `, Out at ${a.checkOut}` : ' (Shift Active 🟢)'} [${a.status}]`).join('\n')
+            : 'No punch records logged yet today.') +
+          `\n\n• **Present / Active:** ${activeEmps.length}\n• **Total Workforce:** ${employees.length}`;
+      } else if (pLower.includes('headcount') || pLower.includes('total employee') || pLower.includes('how many employee')) {
+        const depts = Array.from(new Set(employees.map(e => e.department)));
+        fallbackText = `**Real-Time Workforce Headcount Overview:**\n• Total Registered Employees: **${employees.length}**\n\n**Department Breakdown:**\n` +
+          depts.map(d => `• **${d}**: ${employees.filter(e => e.department === d).length} staff`).join('\n');
+      } else if (pLower.includes('leave')) {
+        const pending = leaveRequests.filter(l => l.status === 'Pending');
+        fallbackText = `**Real-Time Leave Status:**\n• Pending Review: **${pending.length}**\n• Total Active Requests: **${leaveRequests.length}**\n\n` +
+          (pending.length > 0 ? pending.map(l => `• **${l.employeeName}** (${l.type}): ${l.startDate} to ${l.endDate}`).join('\n') : 'No pending leave requests at this time.');
+      } else {
+        fallbackText = `[HR Advisory]: Based on standard Enterprise HR guidelines:
+• All employee onboarding documentation must be completed within 14 calendar days.
+• Parental leave allocations provide up to 12 weeks paid coverage for eligible staff.
+• Performance evaluations are scheduled on a bi-annual cycle.`;
+      }
+
       const fallbackMsg: AiChatMessage = {
         id: `ai-err-${Date.now()}`,
         sender: 'ai',
-        text: `[HR Advisory]: Based on standard Enterprise HR guidelines:
-• All employee onboarding documentation must be completed within 14 calendar days.
-• Parental leave allocations provide up to 12 weeks paid coverage for eligible staff.
-• Performance evaluations are scheduled on a bi-annual cycle.`,
+        text: fallbackText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, fallbackMsg]);

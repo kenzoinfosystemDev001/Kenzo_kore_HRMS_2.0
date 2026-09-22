@@ -159,6 +159,8 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
           effectiveStatus === 'Active' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
           effectiveStatus === 'In-Active' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
           effectiveStatus === 'Resigned' ? 'bg-red-100 text-red-800 border border-red-300' :
+          effectiveStatus === 'Terminated' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
+          effectiveStatus === 'ATL' ? 'bg-purple-100 text-purple-800 border border-purple-300' :
           'bg-slate-100 text-slate-800 border border-slate-300'
         }`}>
           {effectiveStatus === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
@@ -181,12 +183,16 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
           effectiveStatus === 'Active' ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' :
           effectiveStatus === 'In-Active' ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100' :
           effectiveStatus === 'Resigned' ? 'bg-red-50 text-red-800 border-red-300 hover:bg-red-100' :
+          effectiveStatus === 'Terminated' ? 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100' :
+          effectiveStatus === 'ATL' ? 'bg-purple-50 text-purple-800 border-purple-300 hover:bg-purple-100' :
           'bg-slate-50 text-slate-800 border-slate-300'
         }`}
       >
         <option value="Active">Active {isClockedInToday ? (isClockedOut ? '🟢 (Completed Shift)' : '🟢 (Clocked-In)') : ''}</option>
         <option value="In-Active">In-Active</option>
         <option value="Resigned">Resigned</option>
+        <option value="Terminated">Terminated</option>
+        <option value="ATL">ATL</option>
         <option value="Remote">Remote</option>
         <option value="On Leave">On Leave</option>
       </select>
@@ -240,6 +246,10 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
           >
             <option value="All">All Statuses</option>
             <option value="Active">Active</option>
+            <option value="In-Active">In-Active</option>
+            <option value="Resigned">Resigned</option>
+            <option value="Terminated">Terminated</option>
+            <option value="ATL">ATL</option>
             <option value="On Leave">On Leave</option>
             <option value="Remote">Remote</option>
             <option value="Pending">Pending</option>

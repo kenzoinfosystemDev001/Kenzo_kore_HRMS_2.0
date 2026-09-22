@@ -358,12 +358,16 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
                                 effectiveStatus === 'Active' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
                                 effectiveStatus === 'In-Active' ? 'bg-amber-100 text-amber-800 border-amber-300' :
                                 effectiveStatus === 'Resigned' ? 'bg-red-100 text-red-800 border-red-300' :
+                                effectiveStatus === 'Terminated' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                                effectiveStatus === 'ATL' ? 'bg-purple-100 text-purple-800 border-purple-300' :
                                 'bg-slate-100 text-slate-800 border-slate-300'
                               }`}
                             >
                               <option value="Active">Active {isClockedInToday ? (isClockedOut ? '🟢 (Completed Shift)' : '🟢 (Clocked-In)') : ''}</option>
                               <option value="In-Active">In-Active</option>
                               <option value="Resigned">Resigned</option>
+                              <option value="Terminated">Terminated</option>
+                              <option value="ATL">ATL</option>
                               <option value="Remote">Remote</option>
                               <option value="On Leave">On Leave</option>
                             </select>

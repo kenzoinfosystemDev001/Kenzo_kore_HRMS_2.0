@@ -96,7 +96,7 @@ export interface UserAccount {
   documents?: EmployeeDocument[];
 }
 
-export type EmploymentStatus = 'Active' | 'In-Active' | 'Resigned' | 'On Leave' | 'Pending' | 'Remote' | 'Contractor' | 'Terminated';
+export type EmploymentStatus = 'Active' | 'In-Active' | 'Resigned' | 'Terminated' | 'ATL' | 'On Leave' | 'Pending' | 'Remote' | 'Contractor';
 
 export type Department = 'Engineering' | 'Product & Design' | 'Human Resources' | 'Sales & Marketing' | 'Finance' | 'Operations';
 

@@ -62,8 +62,28 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
   const [baseSalary, setBaseSalary] = useState(5500);
   const [allowanceBonus, setAllowanceBonus] = useState(500);
   const [healthDeduction, setHealthDeduction] = useState(150);
-  const [taxDeduction, setTaxDeduction] = useState(1100);
+  const [taxDeduction, setTaxDeduction] = useState(200);
   const [payPeriod, setPayPeriod] = useState('Aug 16 - Aug 30, 2026');
+  const [payPeriodStartDate, setPayPeriodStartDate] = useState('2026-08-16');
+  const [payPeriodEndDate, setPayPeriodEndDate] = useState('2026-08-30');
+
+  const updatePayPeriodRange = (start: string, end: string) => {
+    setPayPeriodStartDate(start);
+    setPayPeriodEndDate(end);
+    if (start && end) {
+      try {
+        const sParts = start.split('-');
+        const eParts = end.split('-');
+        const sDate = new Date(Number(sParts[0]), Number(sParts[1]) - 1, Number(sParts[2]));
+        const eDate = new Date(Number(eParts[0]), Number(eParts[1]) - 1, Number(eParts[2]));
+        const sStr = sDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+        const eStr = eDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+        setPayPeriod(`${sStr} - ${eStr}`);
+      } catch {
+        setPayPeriod(`${start} - ${end}`);
+      }
+    }
+  };
 
   const currentEmp = employees.find(e => e.id === currentUser?.id || e.email?.toLowerCase() === currentUser?.email?.toLowerCase());
 
@@ -494,15 +514,48 @@ export const PayrollView: React.FC<PayrollViewProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Pay Period</label>
-                <input
-                  type="text"
-                  required
-                  value={payPeriod}
-                  onChange={(e) => setPayPeriod(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800"
-                />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 block text-xs">
+                    Pay Period (Select Start & End Dates)
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-[#0060ac]" /> Date Range Picker
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold block mb-1">Start Date</span>
+                    <input
+                      type="date"
+                      value={payPeriodStartDate}
+                      onChange={(e) => updatePayPeriodRange(e.target.value, payPeriodEndDate)}
+                      className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 focus:outline-none focus:border-[#0060ac]"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold block mb-1">End Date</span>
+                    <input
+                      type="date"
+                      value={payPeriodEndDate}
+                      onChange={(e) => updatePayPeriodRange(payPeriodStartDate, e.target.value)}
+                      className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 focus:outline-none focus:border-[#0060ac]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] text-slate-500 font-medium block mb-1">Pay Period Range</span>
+                  <input
+                    type="text"
+                    required
+                    value={payPeriod}
+                    onChange={(e) => setPayPeriod(e.target.value)}
+                    placeholder="e.g. Aug 16 - Aug 30, 2026"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 focus:outline-none focus:border-[#0060ac]"
+                  />
+                </div>
               </div>
 
               <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex justify-between items-center text-xs font-bold">
